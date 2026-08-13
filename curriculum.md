@@ -746,6 +746,15 @@ interface ConversationProvider {
 Đổi provider = đổi 1 dòng config, không đụng vào logic bài học. Tầng `ScriptedProvider`
 là thứ đảm bảo nguyên tắc "Vùng B không bao giờ chặn tiến độ" ở mục 12.1.
 
+**Trong app không có màn hình nhập API key.** Key nằm ở phía server, bạn cấu hình một lần
+lúc dựng app. Ba bạn không bao giờ nhìn thấy nó, không phải đăng ký gì với nhà cung cấp AI,
+không phải nhập gì cả — chỉ mở app và học. Hoá đơn ~34.000đ/tháng về phía bạn.
+
+Hệ quả kỹ thuật: app **không gọi thẳng** tới nhà cung cấp AI. Mọi lượt role-play đi qua
+một backend nhỏ của bạn, nơi giữ key và đếm quota 45 lượt/ngày/tài khoản. Nếu app gọi
+thẳng, key sẽ phải nằm trong app và bất kỳ ai cũng trích được ra dùng miễn phí bằng tiền
+của bạn.
+
 ### 12.6 Ràng buộc system prompt cho role-play
 
 Model dễ nói quá dài và quá khó so với trình độ người học. Ba ràng buộc bắt buộc:
@@ -954,7 +963,7 @@ nếu bạn muốn đổi ý sau.
 |---|---|---|---|---|
 | 1 | Giọng mẫu chính | **Anh-Mỹ** | Nhiều tài nguyên nhất, phổ biến nhất ở VN, và là giọng ba bạn sẽ gặp nhiều nhất trong phim/nhạc/công việc. Các giọng khác vẫn xuất hiện có chủ đích ở tuần 25 | Rẻ nếu đổi trước khi thu audio; đắt sau đó (phải làm lại 130 đoạn nghe) |
 | 2 | Role-play | **Lai** — kịch bản cố định cho phần lõi, LLM cho nói tự do (mục 12) | Chi phí ~34.000đ/tháng, không bao giờ chặn tiến độ | Rẻ — interface `ConversationProvider` đã tách sẵn |
-| 3 | Model LLM | **Claude Haiku 4.5** | Rẻ nhất dòng Claude, đủ tốt cho hội thoại ngắn; tránh rủi ro dữ liệu + rate limit của free tier (mục 12.5) | Rẻ — đổi 1 dòng config |
+| 3 | Model LLM | **Claude Haiku 4.5**, key giữ ở server — app không có màn hình nhập key (mục 12.5) | Rẻ nhất dòng Claude, đủ tốt cho hội thoại ngắn; tránh rủi ro dữ liệu + rate limit của free tier (mục 12.5) | Rẻ — đổi 1 dòng config |
 | 4 | Chấm phát âm | **Trên server**, có hàng đợi offline (mục 12.7) | Chấm phát âm chuẩn cần model nặng, làm trên máy vừa khó vừa kém chính xác — mà chấm sai là rủi ro 🔴 Cao ở bảng trên | Trung bình — kiến trúc hàng đợi giữ nguyên, chỉ thay engine |
 | 5 | Kỹ năng viết | **Không dạy** | Mục tiêu là giao tiếp. Thêm viết sẽ lấy mất thời lượng của khối Nói — khối quan trọng nhất | Rẻ nếu thêm sau như khối tuỳ chọn ngoài 45 phút |
 | 6 | Số người dùng | **2 tài khoản độc lập hoàn toàn** — TK1 ba bạn, TK2 bạn (mục 13) | Không chung streak, không chung SRS | Đắt nếu sau này muốn mở cho nhiều người (cần tài khoản thật) |
