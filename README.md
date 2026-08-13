@@ -1,2 +1,55 @@
-# apptienganhthucchien
-Đây là một app tiếng anh thực chiến
+# Tiếng Anh Thực Chiến
+
+App học tiếng Anh giao tiếp cho hai người trong gia đình — 45 phút mỗi ngày, 6 tháng.
+
+Giáo trình và toàn bộ quyết định thiết kế nằm ở [`curriculum.md`](./curriculum.md).
+Mã nguồn tham chiếu tới các mục trong đó (ví dụ "§13.1") thay vì lặp lại lý do.
+
+## Chạy thử
+
+```bash
+npm install
+npm run dev        # mở địa chỉ hiện ra trên máy, hoặc trên điện thoại cùng Wi-Fi
+```
+
+## Các lệnh
+
+| Lệnh | Việc |
+|---|---|
+| `npm run dev` | Chạy bản phát triển |
+| `npm run build` | Đóng gói vào `dist/` |
+| `npm run preview` | Chạy thử bản đã đóng gói |
+| `npm test` | Chạy unit test (streak, kho dữ liệu) |
+| `npm run typecheck` | Kiểm tra kiểu |
+| `npm run smoke` | Chạy app thật trên trình duyệt cỡ điện thoại, kiểm tra luồng chính |
+| `npm run icons` | Sinh lại bộ icon PWA |
+
+`npm run smoke` cần server đang chạy (`npm run preview`). Trong môi trường không tải
+được Chromium, đặt `CHROMIUM_PATH` trỏ tới binary có sẵn.
+
+## Cài lên iPhone
+
+App là PWA (§16.2) — không qua App Store, không hết hạn, tự cập nhật.
+Làm một lần trên máy người học:
+
+1. Mở Safari, vào địa chỉ web của app
+2. Bấm nút Chia sẻ → **Thêm vào MH chính**
+3. Đặt tên ngắn, bấm Thêm
+4. Kéo biểu tượng ra trang đầu màn hình chính
+
+Từ đó người học chỉ chạm biểu tượng, không cần mở Safari nữa.
+
+## Cấu trúc
+
+```
+src/
+  data/        Lưu trữ: IndexedDB, hai tài khoản, repository
+  domain/      Logic thuần: ngày tháng, chuỗi streak
+  platform/    Cầu nối trình duyệt: quyền lưu trữ lâu dài
+  ui/          Màn hình
+scripts/       Sinh icon, smoke test
+```
+
+Quy tắc quan trọng nhất (§13.1): **mọi bản ghi học tập đều có `accountId`**.
+Thư viện nội dung là thứ duy nhất dùng chung. Một truy vấn không lọc theo
+`accountId` là bug.

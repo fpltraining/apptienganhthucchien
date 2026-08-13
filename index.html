@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover lets the layout reach under the notch; the safe-area
+         insets in styles.css keep content clear of it. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no"
+    />
+    <meta name="theme-color" content="#1B4965" />
+    <meta name="color-scheme" content="light" />
+
+    <!-- iOS reads these rather than the web manifest for home-screen installs. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Tiếng Anh" />
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+    <!-- Without this, browsers request /favicon.ico and log a 404 on every load. -->
+    <link rel="icon" type="image/png" href="/icons/icon-192.png" />
+
+    <title>Tiếng Anh Thực Chiến</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+  </head>
+  <body>
+    <div id="app" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
