@@ -25,6 +25,7 @@
 13. [Hai người dùng — hai lộ trình độc lập](#13-hai-người-dùng--hai-lộ-trình-độc-lập)
 14. [Bảng kê nội dung cần sản xuất](#14-bảng-kê-nội-dung-cần-sản-xuất)
 15. [Rủi ro & những gì đã chốt](#15-rủi-ro--những-gì-đã-chốt)
+16. [Đưa app tới máy ba bạn](#16-đưa-app-tới-máy-ba-bạn)
 
 ---
 
@@ -1021,6 +1022,7 @@ nếu bạn muốn đổi ý sau.
 | 7 | Đăng nhập | **Không có.** Mở app → chạm chọn Tài khoản 1 / Tài khoản 2 (mục 13.2) | Bỏ hết ma sát cho người lớn tuổi | Trung bình — thêm đăng nhập sau cần di trú dữ liệu |
 | 8 | Sao lưu | **Không có mã, không có khôi phục** (mục 13.2b). Chỉ dựa vào sao lưu hệ thống iOS/Android — là việc chọn đúng thư mục lúc code, không phải tính năng | Bạn chọn đơn giản tuyệt đối. Cờ hệ thống là thứ duy nhất không thêm màn hình nào mà vẫn đỡ được phần nào | Rẻ |
 | 9 | Số máy | **Một máy chung.** Không đồng bộ nhiều máy | Không còn backend sao lưu thì đồng bộ 2 máy cũng không còn cơ sở | Đắt — muốn 2 máy thì phải dựng lại backend |
+| 11 | Đóng gói & cài đặt | **PWA** — bạn cài một lần lên máy ba bạn, sau đó ba bạn chỉ chạm biểu tượng (mục 16) | 0đ, không duyệt Apple, không hết hạn, tự cập nhật. TestFlight hết hạn sau 90 ngày là đủ để ba bạn bỏ app giữa khoá | Rẻ — bọc vỏ native sau vẫn giữ nguyên code |
 | 10 | Track D cho bạn | **Hướng 1** — ưu tiên nội dung cho ba bạn, sản xuất 8 tuần nâng cao trong lúc ba bạn học tháng 2–3 (mục 13.3) | Ba bạn là người dùng chính; đừng để việc chuẩn bị nội dung cho bạn làm chậm ngày ba bạn bắt đầu | Rẻ — chỉ là thứ tự sản xuất |
 
 **Ba quyết định đáng để bạn soi lại kỹ nhất**, vì chúng đắt nhất nếu đổi:
@@ -1035,6 +1037,102 @@ nếu bạn muốn đổi ý sau.
   đây là chỗ phải làm lại nhiều nhất.
 
 Các mục còn lại đổi ý lúc nào cũng được mà gần như không tốn gì.
+
+---
+
+## 16. Đưa app tới máy ba bạn
+
+> **Yêu cầu:** ba bạn chỉ cần **chạm vào biểu tượng là dùng được**. Không đăng nhập, không
+> cài đặt, không hiểu gì về kỹ thuật.
+
+Điều đầu tiên cần tách bạch: **"cài app" và "dùng app" là hai việc khác nhau.** Việc cài
+chỉ xảy ra **một lần, và do bạn làm trên máy ba bạn** — ba bạn không tham gia. Từ hôm sau
+trở đi, ba bạn chỉ thấy một biểu tượng trên màn hình chính, chạm vào là học.
+
+Vậy câu hỏi thật không phải "làm sao ba tôi cài được app", mà là **"cách đóng gói nào để
+bạn cài một lần rồi không bao giờ phải đụng lại nữa"**.
+
+### 16.1 Ba cách đưa app lên iPhone
+
+| | **PWA** (web app thêm vào màn hình chính) | **TestFlight** | **App Store công khai** |
+|---|---|---|---|
+| Ba bạn thấy gì | Biểu tượng trên màn hình chính, mở toàn màn hình — không phân biệt được với app thường | Như app thường | Như app thường |
+| Chi phí | **0đ** | ~2,5 triệu/năm (Apple Developer) | ~2,5 triệu/năm |
+| Duyệt của Apple | Không | Nhẹ | **Có, và có thể bị từ chối** |
+| Hết hạn | Không bao giờ | **90 ngày/bản** — phải build lại, ba bạn phải bấm cập nhật | Không |
+| Cập nhật | Tự động, ba bạn không biết gì | Ba bạn phải mở TestFlight bấm cập nhật | Qua App Store |
+| Thời gian tới lúc chạy được | Ngay | Vài ngày | Vài tuần |
+
+**Rủi ro của App Store công khai:** Apple thường từ chối app "làm cho một cá nhân hoặc
+một nhóm nhỏ dùng nội bộ" (guideline về minimum functionality). App học tiếng Anh cho 2
+bố con nhiều khả năng rơi vào diện này. Bỏ 2,5 triệu/năm và chờ vài tuần để rồi có thể bị
+từ chối, trong khi mục tiêu chỉ là ba bạn học được — không đáng.
+
+**Rủi ro của TestFlight:** bản build hết hạn sau 90 ngày. Nghĩa là **giữa khoá học 6
+tháng, app của ba bạn sẽ ngừng hoạt động ít nhất một lần**, và ba bạn phải tự mở TestFlight
+bấm cập nhật. Với người không rành công nghệ, đó là ngày họ bỏ app.
+
+### 16.2 Quyết định: PWA
+
+> **Chốt: đóng gói dạng PWA**, bạn cài một lần lên máy ba bạn.
+
+Lý do quyết định được nhanh: **kiến trúc đã chọn ở các mục trước không cần gì của app
+native.** Chấm phát âm chạy trên server (quyết định #4), nên app chỉ cần **ghi âm và gửi
+lên** — việc mà trình duyệt làm được. Không cần model AI trên máy, không cần thư viện
+native nào.
+
+Ba bạn sẽ thấy đúng như một app bình thường:
+
+- Biểu tượng riêng trên màn hình chính, có tên và icon.
+- Mở ra là **toàn màn hình**, không thanh địa chỉ, không nút Safari.
+- Chạm biểu tượng → màn hình chọn Tài khoản 1 / Tài khoản 2 → học.
+- App tự cập nhật khi bạn sửa gì đó. Ba bạn không bao giờ thấy chữ "cập nhật".
+
+**Việc bạn làm một lần trên máy ba bạn** (khoảng 2 phút):
+
+```
+1. Mở Safari → vào địa chỉ web của app
+2. Bấm nút Chia sẻ (ô vuông có mũi tên đi lên, ở giữa thanh dưới)
+3. Kéo xuống chọn "Thêm vào MH chính" (Add to Home Screen)
+4. Đặt tên ngắn — ví dụ "Tiếng Anh"
+5. Bấm Thêm → biểu tượng xuất hiện trên màn hình chính
+6. Kéo biểu tượng ra trang đầu, để chỗ dễ thấy nhất
+```
+
+Xong. Từ đó ba bạn không bao giờ phải mở Safari nữa.
+
+### 16.3 Bốn việc kỹ thuật bắt buộc để PWA hoạt động đúng
+
+Không làm đủ bốn việc này thì PWA sẽ có cảm giác "web" chứ không phải "app":
+
+| # | Việc | Vì sao bắt buộc |
+|---|---|---|
+| 1 | `display: "standalone"` trong manifest | Bỏ thanh địa chỉ Safari. Thiếu cái này ba bạn sẽ thấy nó là trang web |
+| 2 | Service Worker + Cache API | Học được khi mạng chập chờn (mục 12.7). Đây là thứ biến web thành app |
+| 3 | `navigator.storage.persist()` | Xin quyền lưu trữ lâu dài. **Không có nó, iOS có thể tự xoá dữ liệu app khi máy đầy** — mất sạch tiến độ |
+| 4 | Icon 180×180 + tên ngắn | Icon xấu hoặc tên dài bị cắt là thứ đầu tiên làm app trông không đáng tin |
+
+Về (3): iOS chỉ cấp quyền lưu trữ lâu dài cho web app **đã được thêm vào màn hình chính**.
+Đây là thêm một lý do phải làm bước "Thêm vào MH chính" chứ không để ba bạn mở bằng
+đường link.
+
+### 16.4 Hai giới hạn của PWA cần biết trước
+
+| Giới hạn | Ảnh hưởng tới app này |
+|---|---|
+| **Không tải nội dung ngầm khi app đóng** | Việc tải trước nội dung tuần mới (mục 12.7) phải làm **lúc ba bạn đang mở app**. Xử lý: Chủ nhật là buổi nhẹ 15 phút — tải trong lúc đó, hiện thanh tiến trình nhỏ |
+| **Thông báo nhắc học** | iOS chỉ hỗ trợ từ 16.4 trở lên, và phải xin quyền một lần. Nếu máy ba bạn cũ hơn thì không có nhắc — lúc đó biểu tượng đặt ở trang đầu màn hình chính chính là lời nhắc |
+
+Cả hai đều không chặn việc học, chỉ cần thiết kế quanh chúng.
+
+### 16.5 Nếu sau này muốn lên App Store thật
+
+Không phải làm lại từ đầu. Bọc PWA vào vỏ native (Capacitor hoặc tương đương) là đưa được
+lên App Store, giữ nguyên toàn bộ code. Lúc đó mới cần trả 2,5 triệu/năm — và chỉ nên làm
+nếu bạn quyết định mở app cho người ngoài gia đình.
+
+**Đề xuất:** đừng làm việc đó bây giờ. Mục tiêu 6 tháng tới là ba bạn học đều, không phải
+có mặt trên App Store.
 
 ---
 
