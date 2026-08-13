@@ -1,5 +1,17 @@
 # Supabase schema
 
+> ## ⛔ THƯ MỤC NÀY HIỆN KHÔNG DÙNG
+>
+> App đang chạy hoàn toàn trên máy người học, không cần kho dữ liệu trên mạng.
+> Không có file nào trong thư mục này được app gọi tới.
+>
+> Giữ lại phòng khi sau này muốn có sao lưu trên mạng hoặc dùng trên hai máy.
+> Muốn dùng thì đọc phần "Hai điểm cần quyết" ở cuối trang.
+>
+> **Bộ lịch ôn duy nhất đang chạy là FSRS trong `src/domain/srs.ts`.**
+> File `personalization.js` ở đây dùng SM-2 — hai bộ lịch không được chạy cùng
+> lúc trên một người học, vì chúng tính ra hai ngày ôn khác nhau cho cùng một từ.
+
 Schema và logic cá nhân hoá cho app, bám theo `curriculum.md` (trích dẫn dạng §N).
 
 ```

@@ -39,15 +39,29 @@ Làm một lần trên máy người học:
 
 Từ đó người học chỉ chạm biểu tượng, không cần mở Safari nữa.
 
+## App hoạt động thế nào
+
+Toàn bộ dữ liệu học nằm **trong máy người học**. Không đăng nhập, không mật khẩu,
+không mã, không kho dữ liệu trên mạng. Mở app là học được ngay.
+
+Chỉ có một việc cần mạng: phần nói chuyện với AI và chấm phát âm. Mất mạng thì
+buổi học vẫn chạy đủ và vẫn tính chuỗi ngày.
+
+**Chi phí:** khoảng 34.000đ/tháng, chỉ là tiền AI cho phần nói tự do.
+
+**Đánh đổi:** mất điện thoại là mất tiến độ. Cách chống miễn phí là bật sao lưu
+iCloud cho máy — xem §13.2b trong `curriculum.md`.
+
 ## Cấu trúc
 
 ```
 src/
-  data/        Lưu trữ: IndexedDB, hai tài khoản, repository
-  domain/      Logic thuần: ngày tháng, chuỗi streak
-  platform/    Cầu nối trình duyệt: quyền lưu trữ lâu dài
+  data/        Lưu trữ trong máy, hai tài khoản
+  domain/      Logic: ngày tháng, chuỗi ngày học, lịch ôn từ vựng
+  platform/    Xin quyền lưu trữ lâu dài của trình duyệt
   ui/          Màn hình
-scripts/       Sinh icon, smoke test
+scripts/       Sinh icon, kiểm tra tự động
+supabase/      KHÔNG DÙNG — giữ lại phòng khi cần sao lưu trên mạng
 ```
 
 Quy tắc quan trọng nhất (§13.1): **mọi bản ghi học tập đều có `accountId`**.
