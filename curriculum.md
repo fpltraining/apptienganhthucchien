@@ -794,13 +794,14 @@ không cần mạng, trừ chấm phát âm và nói tự do.
 
 ## 13. Hai người dùng — hai lộ trình độc lập
 
-> **Quyết định của bạn (đã chốt):** 2 hồ sơ riêng (bạn và ba bạn), chọn khi mở app —
-> không đăng ký, không mật khẩu. Tiến độ / nội dung /
-> lộ trình cá nhân hoá độc lập hoàn toàn. Không dùng chung streak, không dùng chung SRS.
+> **Quyết định của bạn (đã chốt):** 2 tài khoản riêng — **Tài khoản 1** (ba bạn) và
+> **Tài khoản 2** (bạn). Chạm chọn khi mở app, không đăng ký, không mật khẩu, không mã
+> sao lưu. Tiến độ / nội dung / lộ trình độc lập hoàn toàn: không chung streak, không
+> chung SRS.
 
 ### 13.1 Ranh giới dữ liệu
 
-| Dùng chung (read-only) | Riêng từng hồ sơ (read-write) |
+| Dùng chung (read-only) | Riêng từng tài khoản (read-write) |
 |---|---|
 | Thư viện nội dung: 1.300 thẻ từ vựng, 130 đoạn nghe, 130 kịch bản role-play, 12 module phát âm, 4 bộ test | Kết quả placement + track được gán |
 | Định nghĩa 26 tuần & cấu trúc giai đoạn | Toàn bộ lịch SRS (mỗi thẻ có `due_date`, `stability`, `difficulty` riêng) |
@@ -814,10 +815,17 @@ không cần mạng, trừ chấm phát âm và nói tự do.
 **Quy tắc:** mọi bảng dữ liệu học tập đều có khoá `user_id`. Thư viện nội dung là bảng
 duy nhất không có khoá đó. Nếu một truy vấn nào đó không lọc theo `user_id`, đó là bug.
 
-### 13.2 Chọn hồ sơ — không có đăng nhập
+### 13.2 Chọn tài khoản — không có đăng nhập
 
 > **Quyết định của bạn (đã chốt):** app dùng trong gia đình, chỉ 2 người. Không đăng ký,
-> không mật khẩu. Mở app → chọn hồ sơ → vào học.
+> không mật khẩu, không mã sao lưu. Mở app → chạm chọn tài khoản → vào học.
+
+**Hai tài khoản:**
+
+| | Của ai | Trình độ |
+|---|---|---|
+| **Tài khoản 1** | Ba bạn | Sơ cấp A1–A2 (đã xác nhận) |
+| **Tài khoản 2** | Bạn | Placement test quyết định |
 
 **Màn hình đầu tiên khi mở app:**
 
@@ -828,7 +836,7 @@ duy nhất không có khoá đó. Nếu một truy vấn nào đó không lọc 
    │              │  │              │
    │      👤      │  │      👤      │
    │              │  │              │
-   │      BA      │  │     CON      │
+   │  TÀI KHOẢN 1 │  │  TÀI KHOẢN 2 │
    │  🔥 47 ngày  │  │  🔥 12 ngày  │
    └──────────────┘  └──────────────┘
 ```
@@ -836,60 +844,41 @@ duy nhất không có khoá đó. Nếu một truy vấn nào đó không lọc 
 Quy tắc thiết kế:
 
 - **Hai ô lớn, chạm một lần là vào.** Không màn hình trung gian, không "xác nhận".
-- **Nhớ người dùng lần trước.** Mở lại app trong cùng ngày → vào thẳng hồ sơ đó, bỏ qua
-  màn hình chọn. Nút "Đổi người" nhỏ ở góc màn hình chính để quay lại.
-- **Đổi hồ sơ giữa chừng không mất dữ liệu.** Buổi học dở được lưu lại đúng vị trí; quay
-  lại là học tiếp, không phải làm lại từ đầu.
+- **Nhớ tài khoản lần trước.** Mở lại app trong cùng ngày → vào thẳng tài khoản đó, bỏ qua
+  màn hình chọn. Nút "Đổi tài khoản" nhỏ ở góc màn hình chính để quay lại.
+- **Đổi tài khoản giữa chừng không mất dữ liệu.** Buổi học dở được lưu lại đúng vị trí;
+  quay lại là học tiếp, không phải làm lại từ đầu.
 - **Hiển thị streak ngay trên ô chọn.** Đây là thứ đầu tiên ba bạn nhìn thấy mỗi ngày —
   dùng nó làm động lực.
-- **Không có khái niệm "đăng xuất".** Không có màn hình cài đặt tài khoản, không có
-  "quên mật khẩu", không có email xác thực.
+- **Không có khái niệm "đăng xuất".** Không màn hình cài đặt tài khoản, không mật khẩu,
+  không email, không mã khôi phục.
 
-**Về kỹ thuật:** khoá `user_id` ở mục 13.1 vẫn giữ nguyên — chỉ khác là nó được gán lúc
-tạo hồ sơ lần đầu thay vì lúc đăng ký, và không có tầng xác thực nào phía trên. Ranh
-giới dữ liệu giữa hai hồ sơ không đổi.
+**Về kỹ thuật:** khoá `user_id` ở mục 13.1 vẫn giữ nguyên — chỉ khác là nó được gán cứng
+cho hai tài khoản lúc cài app, và không có tầng xác thực nào phía trên. Ranh giới dữ liệu
+giữa hai tài khoản không đổi.
 
-**Một hệ quả cần bạn biết: mất máy là mất hết.** Không có tài khoản thì không có gì để
-khôi phục dữ liệu về — 6 tháng tiến độ, lịch SRS, và toàn bộ nhật ký giọng nói nằm trên
-máy. Nhật ký giọng nói là thứ mất đi đáng tiếc nhất (mục 10.5).
+### 13.2b Không sao lưu — rủi ro đã chấp nhận
 
-**Quyết định: sao lưu tự động ẩn danh** (đã chốt, xem so sánh bên dưới).
+> **Quyết định của bạn (đã chốt):** không mã sao lưu, không khôi phục.
 
-| Cách | Mô tả | Đánh đổi |
-|---|---|---|
-| **✅ 1. Sao lưu tự động ẩn danh** | App tự tạo một ID ngẫu nhiên gắn với máy, đồng bộ ngầm lên cloud. Người dùng không thấy gì cả | Cần một backend nhỏ; người dùng phải cất giữ ID ở đâu đó |
-| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file ra bộ nhớ máy | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm — mà họ sẽ không nhớ |
-| 3. Không sao lưu | Chấp nhận rủi ro | Đơn giản nhất, nhưng mất máy là mất 6 tháng |
+Dữ liệu nằm hoàn toàn trên máy. **Mất máy hoặc gỡ app là mất hết**: 6 tháng tiến độ, toàn
+bộ lịch SRS, và toàn bộ nhật ký giọng nói.
 
-Chọn cách 1 vì đây là loại việc **không được phép phụ thuộc vào trí nhớ người dùng**. Nhật
-ký giọng nói tích luỹ dần và chỉ có giá trị khi đủ dài — mất ở tháng thứ 5 là mất đúng lúc
-nó bắt đầu có ý nghĩa nhất.
+Đây là đánh đổi có ý thức để app thật đơn giản, và tôi tôn trọng quyết định đó. Nhưng có
+một việc **miễn phí, không thêm màn hình nào, không cần ai nhớ gì** mà tôi đề xuất làm
+ngay từ v1:
 
-**Cách ID hoạt động (không có đăng nhập, không có mật khẩu):**
+> **Bật sao lưu hệ thống của điện thoại cho app.** Android có Auto Backup, iOS có iCloud
+> Backup — chỉ là một cờ cấu hình trong app, không phải tính năng phải xây. Khi ba bạn đổi
+> máy, dữ liệu app tự theo về cùng với mọi app khác trên máy. Không có mã, không có màn
+> hình khôi phục, người dùng không cần biết nó tồn tại.
 
-- Lần mở app đầu tiên, app sinh một mã dạng `TA-4K9M-2P7X` và đồng bộ ngầm từ đó.
-- **App không tự gửi mã đi đâu cả.** Không nhắn tin, không email, không chia sẻ ra app khác.
-  Mã chỉ nằm trong app và ở chỗ bạn tự cất.
-- Mã hiện ở cuối màn hình cài đặt, kèm nút **"Sao chép mã"**.
-- Sau buổi học thứ 3, hiện **một lần duy nhất** màn hình "Lưu mã dự phòng": mã in cỡ lớn,
-  gợi ý chụp màn hình hoặc chép ra giấy, và một nút **"Tôi đã lưu rồi"**. Bấm xong thì
-  không nhắc lại nữa.
-- Cài máy mới → nhập mã → khôi phục toàn bộ. Không cần mật khẩu vì mã chính là chìa khoá.
-- Hai hồ sơ dùng chung một mã, đồng bộ cùng lúc, vẫn tách dữ liệu theo `user_id`.
+Nếu bạn không muốn cả cái đó thì tắt cờ là xong — nhưng lúc đó xin xác nhận rõ: mất máy ở
+tháng thứ 5 là mất trắng, và nhật ký giọng nói là thứ không tạo lại được.
 
-> **Đánh đổi cần biết:** ai có mã thì khôi phục được dữ liệu. Với app học tiếng Anh trong
-> gia đình, nội dung nhạy cảm nhất là file ghi âm giọng nói — tôi đánh giá rủi ro này thấp
-> hơn nhiều so với rủi ro mất trắng 6 tháng. Nếu bạn thấy ngược lại, thêm mã PIN 4 số lúc
-> khôi phục là đủ, và không ảnh hưởng gì tới trải nghiệm hằng ngày.
+### 13.3 Hai tài khoản dự kiến
 
-**Về số máy: v1 thiết kế cho một máy chung.** Nếu sau này mỗi người một máy, backend sao
-lưu ở trên đã đủ để mở rộng thành đồng bộ hai chiều — nhập cùng một mã trên máy thứ hai,
-mỗi máy hiển thị một hồ sơ. Không phải viết lại kiến trúc, chỉ thêm xử lý xung đột khi hai
-máy cùng sửa một bản ghi.
-
-### 13.3 Hai hồ sơ dự kiến
-
-| | **Ba bạn** | **Bạn** |
+| | **Tài khoản 1** (ba bạn) | **Tài khoản 2** (bạn) |
 |---|---|---|
 | Trình độ | Sơ cấp A1–A2 (đã xác nhận) | Chưa biết — placement test quyết định |
 | Track dự kiến | **Track C** (nén GĐ1 còn 5 tuần), khả năng cao có ghi đè lịch nghe sang Track B | Chưa xác định |
@@ -910,7 +899,7 @@ Ba hướng xử lý, tôi khuyên hướng 1:
 
 ### 13.4 Không chia sẻ tiến độ (mặc định)
 
-Mặc định hai hồ sơ **không nhìn thấy** streak, điểm số, hay tiến độ của nhau. Lý do:
+Mặc định hai tài khoản **không nhìn thấy** streak, điểm số, hay tiến độ của nhau. Lý do:
 người mới học rất dễ nản khi bị so sánh, và so sánh bố–con thì càng nhạy cảm.
 
 Ở phiên bản sau, có thể cân nhắc một tính năng **opt-in một chiều**: gửi lời động viên
@@ -952,6 +941,7 @@ kịch bản có thể đưa vào bản sau.
 | Role-play bằng LLM trả lời lệch vai hoặc quá dài | 🟡 TB | Ràng buộc system prompt (mục 12.6) **và** cắt độ dài ở phía app — không chỉ tin vào prompt |
 | Vùng B (LLM) lỗi hoặc hết quota làm gãy buổi học | 🟡 TB | `ScriptedProvider` fallback (mục 12.5); buổi học vẫn đủ 4 khối, vẫn tính streak |
 | Bạn chạm "đáy" nội dung ở tháng 4 nếu placement ra Track D | 🟡 TB | Mục 13.3 — sản xuất 8 tuần nâng cao trong lúc ba bạn đang học tháng 2–3 |
+| **Mất máy = mất trắng 6 tháng tiến độ và nhật ký giọng nói** | 🔴 Cao | Không có cách giảm thiểu trong app (không sao lưu, theo quyết định #8). Chỉ có cờ sao lưu hệ thống Android/iOS — mục 13.2b |
 | 45 phút quá dài, thực tế chỉ trụ được 25 | 🟡 TB | Kiến trúc 4 khối cho phép cắt ngang bất cứ đâu mà vẫn có giá trị |
 
 ### Toàn bộ quyết định đã chốt
@@ -967,10 +957,10 @@ nếu bạn muốn đổi ý sau.
 | 3 | Model LLM | **Claude Haiku 4.5** | Rẻ nhất dòng Claude, đủ tốt cho hội thoại ngắn; tránh rủi ro dữ liệu + rate limit của free tier (mục 12.5) | Rẻ — đổi 1 dòng config |
 | 4 | Chấm phát âm | **Trên server**, có hàng đợi offline (mục 12.7) | Chấm phát âm chuẩn cần model nặng, làm trên máy vừa khó vừa kém chính xác — mà chấm sai là rủi ro 🔴 Cao ở bảng trên | Trung bình — kiến trúc hàng đợi giữ nguyên, chỉ thay engine |
 | 5 | Kỹ năng viết | **Không dạy** | Mục tiêu là giao tiếp. Thêm viết sẽ lấy mất thời lượng của khối Nói — khối quan trọng nhất | Rẻ nếu thêm sau như khối tuỳ chọn ngoài 45 phút |
-| 6 | Số người dùng | **2 hồ sơ độc lập hoàn toàn** (mục 13) | Không chung streak, không chung SRS | Đắt nếu sau này muốn mở cho nhiều người (cần tài khoản thật) |
-| 7 | Đăng nhập | **Không có.** Mở app → chạm chọn "Ba" / "Con" (mục 13.2) | Bỏ hết ma sát cho người lớn tuổi | Trung bình — thêm tài khoản sau cần di trú dữ liệu |
-| 8 | Sao lưu | **Cách 1** — ẩn danh tự động, ID gắn máy (mục 13.2) | Người dùng không phải thao tác gì; bảo vệ nhật ký giọng nói — thứ mất đi đáng tiếc nhất | Rẻ |
-| 9 | Số máy | **Một máy chung ở v1**, nhưng backend sao lưu ở #8 đã đủ để mở rộng 2 máy sau | Chưa cần phức tạp hoá khi chưa chắc dùng 2 máy | Rẻ — vì #8 đã có backend, thêm đồng bộ 2 máy không phải viết lại |
+| 6 | Số người dùng | **2 tài khoản độc lập hoàn toàn** — TK1 ba bạn, TK2 bạn (mục 13) | Không chung streak, không chung SRS | Đắt nếu sau này muốn mở cho nhiều người (cần tài khoản thật) |
+| 7 | Đăng nhập | **Không có.** Mở app → chạm chọn Tài khoản 1 / Tài khoản 2 (mục 13.2) | Bỏ hết ma sát cho người lớn tuổi | Trung bình — thêm đăng nhập sau cần di trú dữ liệu |
+| 8 | Sao lưu | **Không có mã, không có khôi phục** (mục 13.2b). Chỉ bật cờ sao lưu hệ thống của Android/iOS | Bạn chọn đơn giản tuyệt đối. Cờ hệ thống là thứ duy nhất không thêm màn hình nào mà vẫn đỡ được phần nào | Rẻ |
+| 9 | Số máy | **Một máy chung.** Không đồng bộ nhiều máy | Không còn backend sao lưu thì đồng bộ 2 máy cũng không còn cơ sở | Đắt — muốn 2 máy thì phải dựng lại backend |
 | 10 | Track D cho bạn | **Hướng 1** — ưu tiên nội dung cho ba bạn, sản xuất 8 tuần nâng cao trong lúc ba bạn học tháng 2–3 (mục 13.3) | Ba bạn là người dùng chính; đừng để việc chuẩn bị nội dung cho bạn làm chậm ngày ba bạn bắt đầu | Rẻ — chỉ là thứ tự sản xuất |
 
 **Ba quyết định đáng để bạn soi lại kỹ nhất**, vì chúng đắt nhất nếu đổi:
@@ -979,10 +969,12 @@ nếu bạn muốn đổi ý sau.
 - **#4 chấm phát âm trên server** — đây là lý do app **cần mạng** ở khối Nói. Nếu chỗ ba
   bạn học mạng chập chờn, hàng đợi offline ở mục 12.7 sẽ gánh, nhưng phản hồi phát âm sẽ
   đến chậm thay vì tức thì.
-- **#6 + #7 không có tài khoản** — nếu có ngày bạn muốn cho người ngoài gia đình dùng,
+- **#8 không sao lưu** — mất máy ở tháng thứ 5 là mất trắng 6 tháng tiến độ và toàn bộ
+  nhật ký giọng nói. Đây là rủi ro lớn nhất còn lại trong toàn bộ thiết kế.
+- **#6 + #7 không có đăng nhập** — nếu có ngày bạn muốn cho người ngoài gia đình dùng,
   đây là chỗ phải làm lại nhiều nhất.
 
-Bảy mục còn lại đổi ý lúc nào cũng được mà gần như không tốn gì.
+Các mục còn lại đổi ý lúc nào cũng được mà gần như không tốn gì.
 
 ---
 
