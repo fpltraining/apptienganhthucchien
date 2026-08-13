@@ -875,15 +875,66 @@ bộ lịch SRS, và toàn bộ nhật ký giọng nói.
 
 Đây là đánh đổi có ý thức để app thật đơn giản, và tôi tôn trọng quyết định đó. Nhưng có
 một việc **miễn phí, không thêm màn hình nào, không cần ai nhớ gì** mà tôi đề xuất làm
-ngay từ v1:
+ngay từ v1: **để hệ điều hành tự sao lưu app**.
 
-> **Bật sao lưu hệ thống của điện thoại cho app.** Android có Auto Backup, iOS có iCloud
-> Backup — chỉ là một cờ cấu hình trong app, không phải tính năng phải xây. Khi ba bạn đổi
-> máy, dữ liệu app tự theo về cùng với mọi app khác trên máy. Không có mã, không có màn
-> hình khôi phục, người dùng không cần biết nó tồn tại.
+#### iOS — không có "cờ", chỉ có chọn đúng thư mục
 
-Nếu bạn không muốn cả cái đó thì tắt cờ là xong — nhưng lúc đó xin xác nhận rõ: mất máy ở
-tháng thứ 5 là mất trắng, và nhật ký giọng nói là thứ không tạo lại được.
+Trên iOS, iCloud Backup **mặc định đã bao gồm dữ liệu app**. Không có cờ nào để bật. Việc
+duy nhất lập trình viên phải làm là **đặt file đúng thư mục**, vì iOS quyết định sao lưu
+hay không dựa trên vị trí file:
+
+| Thư mục | Có được sao lưu? | Đặt gì vào đây |
+|---|---|---|
+| `Documents/` | ✅ Có | Nhật ký giọng nói (do người dùng tạo ra, không tái tạo được) |
+| `Library/Application Support/` | ✅ Có | Database SQLite: lịch SRS, streak, tiến độ, điểm phát âm |
+| `Library/Caches/` | ❌ Không | **Nội dung tải trước hằng tuần** (audio, ảnh, kịch bản) |
+| `tmp/` | ❌ Không | File tạm khi ghi âm |
+
+> ⚠️ **Cái bẫy quan trọng nhất — đừng để nội dung tải trước vào `Documents/`.** Mục 12.7
+> tải trước ~80–120 MB/tuần. Sau 6 tháng là ~2–3 GB. Nếu số đó nằm trong `Documents/`, nó
+> sẽ được đẩy hết lên iCloud, làm đầy 5 GB miễn phí của ba bạn, khiến **iCloud Backup âm
+> thầm ngừng chạy** — và anh mất dữ liệu đúng như khi không sao lưu gì cả, chỉ khác là anh
+> tưởng mình có. Apple cũng có thể từ chối app vì lý do này khi duyệt App Store.
+>
+> Nội dung tải trước là thứ **tải lại được**, nên chỗ đúng của nó là `Library/Caches/`.
+
+Nếu vì lý do nào đó phải để file tải lại được trong `Documents/`, đánh dấu loại trừ:
+
+```swift
+var url = contentFolderURL
+var values = URLResourceValues()
+values.isExcludedFromBackup = true
+try url.setResourceValues(values)
+```
+
+Làm đúng như trên thì tổng dung lượng lên iCloud chỉ còn database + nhật ký giọng nói —
+khoảng vài chục MB sau 6 tháng, nằm gọn trong 5 GB miễn phí.
+
+**Phía người dùng phải bật iCloud Backup trên máy** (đây là cài đặt của iPhone, app không
+can thiệp được): *Cài đặt → [tên tài khoản] → iCloud → Sao lưu iCloud → bật*. Máy iPhone
+thường đã bật sẵn từ lúc thiết lập. Anh nên kiểm tra máy ba anh một lần lúc cài app.
+
+#### Android — có cờ thật
+
+Android thì đúng là một cờ trong `AndroidManifest.xml`:
+
+```xml
+<application android:allowBackup="true"
+             android:dataExtractionRules="@xml/backup_rules">
+```
+
+`allowBackup` mặc định đã là `true`. Cái đáng làm là file `backup_rules` để loại trừ thư
+mục nội dung tải trước — cùng lý do với iOS (Android Auto Backup giới hạn 25 MB/app, vượt
+là ngừng sao lưu hoàn toàn, nên nếu không loại trừ thì gần như chắc chắn hỏng).
+
+#### Giới hạn cần biết
+
+Sao lưu hệ thống **không phải là đồng bộ**. Nó chỉ cứu được tình huống *đổi máy* hoặc
+*khôi phục máy*. Nó **không** cứu được: gỡ app rồi cài lại trên cùng máy (iOS xoá dữ liệu
+app khi gỡ), hay hai bố con muốn học trên hai máy khác nhau.
+
+Nếu bạn thấy vậy là đủ thì không cần làm gì thêm — đây chỉ là chọn thư mục cho đúng lúc
+code, không phải tính năng.
 
 ### 13.3 Hai tài khoản dự kiến
 
@@ -950,7 +1001,7 @@ kịch bản có thể đưa vào bản sau.
 | Role-play bằng LLM trả lời lệch vai hoặc quá dài | 🟡 TB | Ràng buộc system prompt (mục 12.6) **và** cắt độ dài ở phía app — không chỉ tin vào prompt |
 | Vùng B (LLM) lỗi hoặc hết quota làm gãy buổi học | 🟡 TB | `ScriptedProvider` fallback (mục 12.5); buổi học vẫn đủ 4 khối, vẫn tính streak |
 | Bạn chạm "đáy" nội dung ở tháng 4 nếu placement ra Track D | 🟡 TB | Mục 13.3 — sản xuất 8 tuần nâng cao trong lúc ba bạn đang học tháng 2–3 |
-| **Mất máy = mất trắng 6 tháng tiến độ và nhật ký giọng nói** | 🔴 Cao | Không có cách giảm thiểu trong app (không sao lưu, theo quyết định #8). Chỉ có cờ sao lưu hệ thống Android/iOS — mục 13.2b |
+| **Mất máy = mất trắng 6 tháng tiến độ và nhật ký giọng nói** | 🔴 Cao | Không có cách giảm thiểu trong app (không sao lưu, theo quyết định #8). Chỉ có sao lưu hệ thống iOS/Android, và nó chỉ cứu được lúc đổi máy — mục 13.2b |
 | 45 phút quá dài, thực tế chỉ trụ được 25 | 🟡 TB | Kiến trúc 4 khối cho phép cắt ngang bất cứ đâu mà vẫn có giá trị |
 
 ### Toàn bộ quyết định đã chốt
@@ -968,7 +1019,7 @@ nếu bạn muốn đổi ý sau.
 | 5 | Kỹ năng viết | **Không dạy** | Mục tiêu là giao tiếp. Thêm viết sẽ lấy mất thời lượng của khối Nói — khối quan trọng nhất | Rẻ nếu thêm sau như khối tuỳ chọn ngoài 45 phút |
 | 6 | Số người dùng | **2 tài khoản độc lập hoàn toàn** — TK1 ba bạn, TK2 bạn (mục 13) | Không chung streak, không chung SRS | Đắt nếu sau này muốn mở cho nhiều người (cần tài khoản thật) |
 | 7 | Đăng nhập | **Không có.** Mở app → chạm chọn Tài khoản 1 / Tài khoản 2 (mục 13.2) | Bỏ hết ma sát cho người lớn tuổi | Trung bình — thêm đăng nhập sau cần di trú dữ liệu |
-| 8 | Sao lưu | **Không có mã, không có khôi phục** (mục 13.2b). Chỉ bật cờ sao lưu hệ thống của Android/iOS | Bạn chọn đơn giản tuyệt đối. Cờ hệ thống là thứ duy nhất không thêm màn hình nào mà vẫn đỡ được phần nào | Rẻ |
+| 8 | Sao lưu | **Không có mã, không có khôi phục** (mục 13.2b). Chỉ dựa vào sao lưu hệ thống iOS/Android — là việc chọn đúng thư mục lúc code, không phải tính năng | Bạn chọn đơn giản tuyệt đối. Cờ hệ thống là thứ duy nhất không thêm màn hình nào mà vẫn đỡ được phần nào | Rẻ |
 | 9 | Số máy | **Một máy chung.** Không đồng bộ nhiều máy | Không còn backend sao lưu thì đồng bộ 2 máy cũng không còn cơ sở | Đắt — muốn 2 máy thì phải dựng lại backend |
 | 10 | Track D cho bạn | **Hướng 1** — ưu tiên nội dung cho ba bạn, sản xuất 8 tuần nâng cao trong lúc ba bạn học tháng 2–3 (mục 13.3) | Ba bạn là người dùng chính; đừng để việc chuẩn bị nội dung cho bạn làm chậm ngày ba bạn bắt đầu | Rẻ — chỉ là thứ tự sản xuất |
 
