@@ -57,7 +57,7 @@ Từ vựng (SRS)      ███████████           22%
 
 **Chân dung:** Nam trưởng thành, tiếng Việt là tiếng mẹ đẻ, từng học tiếng Anh
 phổ thông đã lâu. Đọc hiểu được câu đơn, nói được câu ngắn rời rạc, nghe được
-nếu người ta nói chậm. Dùng smartphone tốt (Zalo/YouTube/Facebook, tự cài app,
+nếu người ta nói chậm. Dùng smartphone tốt (YouTube, Facebook, tự cài app,
 tự bấm ghi âm).
 
 **Điểm mạnh khai thác được:**
@@ -858,7 +858,7 @@ máy. Nhật ký giọng nói là thứ mất đi đáng tiếc nhất (mục 10
 | Cách | Mô tả | Đánh đổi |
 |---|---|---|
 | **✅ 1. Sao lưu tự động ẩn danh** | App tự tạo một ID ngẫu nhiên gắn với máy, đồng bộ ngầm lên cloud. Người dùng không thấy gì cả | Cần một backend nhỏ; người dùng phải cất giữ ID ở đâu đó |
-| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file gửi qua Zalo | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm — mà họ sẽ không nhớ |
+| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file ra bộ nhớ máy | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm — mà họ sẽ không nhớ |
 | 3. Không sao lưu | Chấp nhận rủi ro | Đơn giản nhất, nhưng mất máy là mất 6 tháng |
 
 Chọn cách 1 vì đây là loại việc **không được phép phụ thuộc vào trí nhớ người dùng**. Nhật
@@ -868,8 +868,12 @@ nó bắt đầu có ý nghĩa nhất.
 **Cách ID hoạt động (không có đăng nhập, không có mật khẩu):**
 
 - Lần mở app đầu tiên, app sinh một mã dạng `TA-4K9M-2P7X` và đồng bộ ngầm từ đó.
-- Mã hiện ở cuối màn hình cài đặt, kèm nút **"Gửi mã cho tôi"** → mở Zalo/email với sẵn
-  nội dung. Nhắc một lần duy nhất sau buổi học thứ 3, rồi không nhắc nữa.
+- **App không tự gửi mã đi đâu cả.** Không nhắn tin, không email, không chia sẻ ra app khác.
+  Mã chỉ nằm trong app và ở chỗ bạn tự cất.
+- Mã hiện ở cuối màn hình cài đặt, kèm nút **"Sao chép mã"**.
+- Sau buổi học thứ 3, hiện **một lần duy nhất** màn hình "Lưu mã dự phòng": mã in cỡ lớn,
+  gợi ý chụp màn hình hoặc chép ra giấy, và một nút **"Tôi đã lưu rồi"**. Bấm xong thì
+  không nhắc lại nữa.
 - Cài máy mới → nhập mã → khôi phục toàn bộ. Không cần mật khẩu vì mã chính là chìa khoá.
 - Hai hồ sơ dùng chung một mã, đồng bộ cùng lúc, vẫn tách dữ liệu theo `user_id`.
 
