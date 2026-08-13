@@ -74,7 +74,7 @@ tự bấm ghi âm).
   trưởng thành.
 - **Mắt và tai:** cần chữ đủ lớn, audio đủ rõ, không có timer đếm ngược gây áp lực.
 
-**Giả định thiết kế (cần bạn xác nhận ở mục 15):**
+**Giả định thiết kế (toàn bộ quyết định kỹ thuật đã chốt ở mục 15):**
 - Học chủ yếu trên điện thoại, có tai nghe, học ở nơi nói ra tiếng được.
 - Không có giáo viên người thật kèm — app phải tự đóng vai bạn thoại.
 - Tiếng Việt được dùng làm ngôn ngữ giải thích trong giai đoạn 1, giảm dần và
@@ -760,6 +760,36 @@ Model dễ nói quá dài và quá khó so với trình độ người học. Ba
 Ràng buộc độ dài phải kiểm tra **ở phía app** sau khi nhận kết quả, không chỉ ghi trong
 prompt — nếu vượt quá, cắt ở câu hoàn chỉnh gần nhất.
 
+### 12.7 Ranh giới online / offline
+
+> **Quyết định:** chấm phát âm chạy **trên server**, mọi thứ còn lại chạy được offline.
+
+Chấm phát âm chuẩn cần model phoneme nặng. Làm trên máy thì vừa khó, vừa kém chính xác —
+mà "chấm phát âm sai → người học mất niềm tin" là rủi ro 🔴 Cao ở mục 15. Thà cần mạng
+còn hơn chấm sai.
+
+| Chức năng | Cần mạng? | Khi mất mạng |
+|---|---|---|
+| Khối 1 — SRS từ vựng | Không | Chạy bình thường (thẻ + audio đã tải sẵn) |
+| Khối 2 — Nghe | Không | Chạy bình thường (audio tải trước theo tuần) |
+| Khối 3 — Shadowing | **Có** (chấm điểm) | Vẫn ghi âm được, xem mục "hàng đợi" bên dưới |
+| Khối 3 — Role-play kịch bản | Không | Chạy bình thường |
+| Khối 3 — Nói tự do (LLM) | **Có** | Chuyển sang role-play kịch bản |
+| Khối 4 — Ôn nhanh | Không | Chạy bình thường |
+
+**Hàng đợi chấm phát âm.** Mất mạng giữa khối Shadowing thì app **không báo lỗi và không
+dừng bài**. Nó ghi âm, xếp vào hàng đợi, và hiển thị:
+
+> *"Đã ghi lại. App sẽ chấm khi có mạng."*
+
+Người học học tiếp bình thường. Có mạng trở lại, app chấm hàng đợi trong nền và cập nhật
+điểm phát âm cùng danh sách âm cần sửa. Buổi học **tính hoàn thành và tính streak ngay**,
+không chờ chấm xong.
+
+**Tải trước nội dung.** Mỗi Chủ nhật, app tải sẵn toàn bộ audio + thẻ + kịch bản của tuần
+kế tiếp khi có Wi-Fi. Ước tính ~80–120 MB/tuần. Nhờ vậy tuần học sau chạy được cả tuần
+không cần mạng, trừ chấm phát âm và nói tự do.
+
 ---
 
 ## 13. Hai người dùng — hai lộ trình độc lập
@@ -823,21 +853,35 @@ giới dữ liệu giữa hai hồ sơ không đổi.
 khôi phục dữ liệu về — 6 tháng tiến độ, lịch SRS, và toàn bộ nhật ký giọng nói nằm trên
 máy. Nhật ký giọng nói là thứ mất đi đáng tiếc nhất (mục 10.5).
 
-Ba cách xử lý, không cách nào bắt người dùng phải nhớ mật khẩu — tôi khuyên cách 1:
+**Quyết định: sao lưu tự động ẩn danh** (đã chốt, xem so sánh bên dưới).
 
 | Cách | Mô tả | Đánh đổi |
 |---|---|---|
-| **1. Sao lưu tự động ẩn danh** | App tự tạo một ID ngẫu nhiên gắn với máy, đồng bộ ngầm lên cloud. Người dùng không thấy gì cả. Khi cài máy mới, nhập ID đó (in ra được, lưu trong Zalo) để khôi phục | Cần backend nhỏ; người dùng phải cất giữ ID ở đâu đó |
-| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file gửi qua Zalo | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm |
+| **✅ 1. Sao lưu tự động ẩn danh** | App tự tạo một ID ngẫu nhiên gắn với máy, đồng bộ ngầm lên cloud. Người dùng không thấy gì cả | Cần một backend nhỏ; người dùng phải cất giữ ID ở đâu đó |
+| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file gửi qua Zalo | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm — mà họ sẽ không nhớ |
 | 3. Không sao lưu | Chấp nhận rủi ro | Đơn giản nhất, nhưng mất máy là mất 6 tháng |
 
-Nếu chọn cách 1, lưu ý: hai hồ sơ dùng chung một ID máy, đồng bộ cùng lúc — vẫn không
-cần đăng nhập, vẫn tách dữ liệu theo `user_id`.
+Chọn cách 1 vì đây là loại việc **không được phép phụ thuộc vào trí nhớ người dùng**. Nhật
+ký giọng nói tích luỹ dần và chỉ có giá trị khi đủ dài — mất ở tháng thứ 5 là mất đúng lúc
+nó bắt đầu có ý nghĩa nhất.
 
-**Nếu sau này bạn muốn dùng hai máy khác nhau** (ba bạn dùng máy tính bảng, bạn dùng điện
-thoại), thiết kế "chọn hồ sơ" này vẫn chạy được: mỗi máy chỉ hiện một hồ sơ. Nhưng lúc đó
-đồng bộ sẽ cần định danh thật hơn — hãy quyết trước khi code nếu đây là kịch bản có thể
-xảy ra.
+**Cách ID hoạt động (không có đăng nhập, không có mật khẩu):**
+
+- Lần mở app đầu tiên, app sinh một mã dạng `TA-4K9M-2P7X` và đồng bộ ngầm từ đó.
+- Mã hiện ở cuối màn hình cài đặt, kèm nút **"Gửi mã cho tôi"** → mở Zalo/email với sẵn
+  nội dung. Nhắc một lần duy nhất sau buổi học thứ 3, rồi không nhắc nữa.
+- Cài máy mới → nhập mã → khôi phục toàn bộ. Không cần mật khẩu vì mã chính là chìa khoá.
+- Hai hồ sơ dùng chung một mã, đồng bộ cùng lúc, vẫn tách dữ liệu theo `user_id`.
+
+> **Đánh đổi cần biết:** ai có mã thì khôi phục được dữ liệu. Với app học tiếng Anh trong
+> gia đình, nội dung nhạy cảm nhất là file ghi âm giọng nói — tôi đánh giá rủi ro này thấp
+> hơn nhiều so với rủi ro mất trắng 6 tháng. Nếu bạn thấy ngược lại, thêm mã PIN 4 số lúc
+> khôi phục là đủ, và không ảnh hưởng gì tới trải nghiệm hằng ngày.
+
+**Về số máy: v1 thiết kế cho một máy chung.** Nếu sau này mỗi người một máy, backend sao
+lưu ở trên đã đủ để mở rộng thành đồng bộ hai chiều — nhập cùng một mã trên máy thứ hai,
+mỗi máy hiển thị một hồ sơ. Không phải viết lại kiến trúc, chỉ thêm xử lý xung đột khi hai
+máy cùng sửa một bản ghi.
 
 ### 13.3 Hai hồ sơ dự kiến
 
@@ -906,30 +950,35 @@ kịch bản có thể đưa vào bản sau.
 | Bạn chạm "đáy" nội dung ở tháng 4 nếu placement ra Track D | 🟡 TB | Mục 13.3 — sản xuất 8 tuần nâng cao trong lúc ba bạn đang học tháng 2–3 |
 | 45 phút quá dài, thực tế chỉ trụ được 25 | 🟡 TB | Kiến trúc 4 khối cho phép cắt ngang bất cứ đâu mà vẫn có giá trị |
 
-### Đã chốt
+### Toàn bộ quyết định đã chốt
 
-| # | Câu hỏi | Quyết định |
-|---|---|---|
-| 2 | Role-play: LLM hay kịch bản cố định? | **Lai.** Kịch bản cố định cho phần lõi 45 phút; LLM (Haiku 4.5, có thể đổi sang Gemini Flash) chỉ cho nói tự do cuối buổi và buổi thứ 7, trần 45 lượt/ngày/người. Chi tiết ở **mục 12**. |
-| 5 | Bao nhiêu người dùng? | **2 hồ sơ độc lập hoàn toàn** — bạn và ba bạn. Không chung streak, không chung SRS. Chi tiết ở **mục 13**. |
-| 5b | Đăng nhập thế nào? | **Không đăng nhập.** Mở app → chạm chọn "Ba" hoặc "Con" → vào học. Không mật khẩu, không email. Chi tiết ở **mục 13.2**. |
+Không còn câu hỏi mở. Bạn đã yêu cầu tôi chọn phương án tối ưu cho những mục còn lại —
+dưới đây là toàn bộ, kèm lý do. Mọi mục đều **đảo ngược được**, cột cuối ghi rõ chi phí
+nếu bạn muốn đổi ý sau.
 
-### Còn cần bạn quyết trước khi tôi code
+| # | Vấn đề | Quyết định | Vì sao | Đổi ý sau tốn gì |
+|---|---|---|---|---|
+| 1 | Giọng mẫu chính | **Anh-Mỹ** | Nhiều tài nguyên nhất, phổ biến nhất ở VN, và là giọng ba bạn sẽ gặp nhiều nhất trong phim/nhạc/công việc. Các giọng khác vẫn xuất hiện có chủ đích ở tuần 25 | Rẻ nếu đổi trước khi thu audio; đắt sau đó (phải làm lại 130 đoạn nghe) |
+| 2 | Role-play | **Lai** — kịch bản cố định cho phần lõi, LLM cho nói tự do (mục 12) | Chi phí ~34.000đ/tháng, không bao giờ chặn tiến độ | Rẻ — interface `ConversationProvider` đã tách sẵn |
+| 3 | Model LLM | **Claude Haiku 4.5** | Rẻ nhất dòng Claude, đủ tốt cho hội thoại ngắn; tránh rủi ro dữ liệu + rate limit của free tier (mục 12.5) | Rẻ — đổi 1 dòng config |
+| 4 | Chấm phát âm | **Trên server**, có hàng đợi offline (mục 12.7) | Chấm phát âm chuẩn cần model nặng, làm trên máy vừa khó vừa kém chính xác — mà chấm sai là rủi ro 🔴 Cao ở bảng trên | Trung bình — kiến trúc hàng đợi giữ nguyên, chỉ thay engine |
+| 5 | Kỹ năng viết | **Không dạy** | Mục tiêu là giao tiếp. Thêm viết sẽ lấy mất thời lượng của khối Nói — khối quan trọng nhất | Rẻ nếu thêm sau như khối tuỳ chọn ngoài 45 phút |
+| 6 | Số người dùng | **2 hồ sơ độc lập hoàn toàn** (mục 13) | Không chung streak, không chung SRS | Đắt nếu sau này muốn mở cho nhiều người (cần tài khoản thật) |
+| 7 | Đăng nhập | **Không có.** Mở app → chạm chọn "Ba" / "Con" (mục 13.2) | Bỏ hết ma sát cho người lớn tuổi | Trung bình — thêm tài khoản sau cần di trú dữ liệu |
+| 8 | Sao lưu | **Cách 1** — ẩn danh tự động, ID gắn máy (mục 13.2) | Người dùng không phải thao tác gì; bảo vệ nhật ký giọng nói — thứ mất đi đáng tiếc nhất | Rẻ |
+| 9 | Số máy | **Một máy chung ở v1**, nhưng backend sao lưu ở #8 đã đủ để mở rộng 2 máy sau | Chưa cần phức tạp hoá khi chưa chắc dùng 2 máy | Rẻ — vì #8 đã có backend, thêm đồng bộ 2 máy không phải viết lại |
+| 10 | Track D cho bạn | **Hướng 1** — ưu tiên nội dung cho ba bạn, sản xuất 8 tuần nâng cao trong lúc ba bạn học tháng 2–3 (mục 13.3) | Ba bạn là người dùng chính; đừng để việc chuẩn bị nội dung cho bạn làm chậm ngày ba bạn bắt đầu | Rẻ — chỉ là thứ tự sản xuất |
 
-1. **Giọng chuẩn:** Mỹ hay Anh-Anh làm giọng mẫu chính? (Tôi đề xuất **Mỹ** —
-   nhiều tài nguyên hơn và phổ biến hơn ở Việt Nam.)
-2. **Offline hay bắt buộc online?** Ảnh hưởng lớn tới việc chọn engine chấm phát
-   âm và nơi lưu audio. Lưu ý: Vùng A (mục 12.1) đã được thiết kế để chạy offline,
-   nên câu hỏi thực chất là *engine chấm phát âm* chạy trên máy hay trên server.
-3. **Nội dung đọc/viết:** giáo trình này gần như bỏ hẳn kỹ năng viết. Bạn có cần
-   không? (Tôi khuyên **không** — mục tiêu là giao tiếp, thêm viết sẽ loãng 45 phút.)
-4. **Nếu placement của bạn ra Track D**, chọn hướng nào trong 3 hướng ở **mục 13.3**?
-   (Tôi đề xuất hướng 1 — ưu tiên nội dung cho ba bạn trước.)
-5. **Sao lưu dữ liệu:** vì không có tài khoản, mất máy là mất 6 tháng tiến độ và toàn bộ
-   nhật ký giọng nói. Chọn cách nào trong 3 cách ở **mục 13.2**? (Tôi đề xuất **cách 1** —
-   sao lưu ẩn danh tự động, người dùng không phải thao tác gì.)
-6. **Một máy hay hai máy?** Nếu hai bố con dùng chung một máy thì thiết kế hiện tại là đủ.
-   Nếu mỗi người một máy, cần quyết cơ chế đồng bộ **trước khi code** (mục 13.2, đoạn cuối).
+**Ba quyết định đáng để bạn soi lại kỹ nhất**, vì chúng đắt nhất nếu đổi:
+
+- **#1 giọng Mỹ** — đổi sau khi đã thu xong audio là làm lại gần như toàn bộ thư viện nghe.
+- **#4 chấm phát âm trên server** — đây là lý do app **cần mạng** ở khối Nói. Nếu chỗ ba
+  bạn học mạng chập chờn, hàng đợi offline ở mục 12.7 sẽ gánh, nhưng phản hồi phát âm sẽ
+  đến chậm thay vì tức thì.
+- **#6 + #7 không có tài khoản** — nếu có ngày bạn muốn cho người ngoài gia đình dùng,
+  đây là chỗ phải làm lại nhiều nhất.
+
+Bảy mục còn lại đổi ý lúc nào cũng được mà gần như không tốn gì.
 
 ---
 
