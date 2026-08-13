@@ -764,12 +764,13 @@ prompt — nếu vượt quá, cắt ở câu hoàn chỉnh gần nhất.
 
 ## 13. Hai người dùng — hai lộ trình độc lập
 
-> **Quyết định của bạn (đã chốt):** 2 tài khoản riêng (bạn và ba bạn), tiến độ / nội dung /
+> **Quyết định của bạn (đã chốt):** 2 hồ sơ riêng (bạn và ba bạn), chọn khi mở app —
+> không đăng ký, không mật khẩu. Tiến độ / nội dung /
 > lộ trình cá nhân hoá độc lập hoàn toàn. Không dùng chung streak, không dùng chung SRS.
 
 ### 13.1 Ranh giới dữ liệu
 
-| Dùng chung (read-only) | Riêng từng tài khoản (read-write) |
+| Dùng chung (read-only) | Riêng từng hồ sơ (read-write) |
 |---|---|
 | Thư viện nội dung: 1.300 thẻ từ vựng, 130 đoạn nghe, 130 kịch bản role-play, 12 module phát âm, 4 bộ test | Kết quả placement + track được gán |
 | Định nghĩa 26 tuần & cấu trúc giai đoạn | Toàn bộ lịch SRS (mỗi thẻ có `due_date`, `stability`, `difficulty` riêng) |
@@ -783,14 +784,60 @@ prompt — nếu vượt quá, cắt ở câu hoàn chỉnh gần nhất.
 **Quy tắc:** mọi bảng dữ liệu học tập đều có khoá `user_id`. Thư viện nội dung là bảng
 duy nhất không có khoá đó. Nếu một truy vấn nào đó không lọc theo `user_id`, đó là bug.
 
-### 13.2 Đăng nhập & chuyển tài khoản
+### 13.2 Chọn hồ sơ — không có đăng nhập
 
-- **Đăng ký:** email + mật khẩu là đủ cho 2 người. Không cần OAuth, không cần SMS.
-- **Chuyển tài khoản nhanh:** hai bố con có thể dùng chung 1 máy (máy tính bảng ở nhà
-  chẳng hạn). Thiết kế nút chuyển tài khoản ngay màn hình chính, **không bắt đăng nhập
-  lại** — chỉ cần mã PIN 4 số nếu bạn muốn có ranh giới.
-- **Phiên đăng nhập dài:** không tự đăng xuất. Bắt người lớn tuổi gõ lại mật khẩu mỗi
-  tuần là cách nhanh nhất để họ bỏ app.
+> **Quyết định của bạn (đã chốt):** app dùng trong gia đình, chỉ 2 người. Không đăng ký,
+> không mật khẩu. Mở app → chọn hồ sơ → vào học.
+
+**Màn hình đầu tiên khi mở app:**
+
+```
+        Hôm nay ai học?
+
+   ┌──────────────┐  ┌──────────────┐
+   │              │  │              │
+   │      👤      │  │      👤      │
+   │              │  │              │
+   │      BA      │  │     CON      │
+   │  🔥 47 ngày  │  │  🔥 12 ngày  │
+   └──────────────┘  └──────────────┘
+```
+
+Quy tắc thiết kế:
+
+- **Hai ô lớn, chạm một lần là vào.** Không màn hình trung gian, không "xác nhận".
+- **Nhớ người dùng lần trước.** Mở lại app trong cùng ngày → vào thẳng hồ sơ đó, bỏ qua
+  màn hình chọn. Nút "Đổi người" nhỏ ở góc màn hình chính để quay lại.
+- **Đổi hồ sơ giữa chừng không mất dữ liệu.** Buổi học dở được lưu lại đúng vị trí; quay
+  lại là học tiếp, không phải làm lại từ đầu.
+- **Hiển thị streak ngay trên ô chọn.** Đây là thứ đầu tiên ba bạn nhìn thấy mỗi ngày —
+  dùng nó làm động lực.
+- **Không có khái niệm "đăng xuất".** Không có màn hình cài đặt tài khoản, không có
+  "quên mật khẩu", không có email xác thực.
+
+**Về kỹ thuật:** khoá `user_id` ở mục 13.1 vẫn giữ nguyên — chỉ khác là nó được gán lúc
+tạo hồ sơ lần đầu thay vì lúc đăng ký, và không có tầng xác thực nào phía trên. Ranh
+giới dữ liệu giữa hai hồ sơ không đổi.
+
+**Một hệ quả cần bạn biết: mất máy là mất hết.** Không có tài khoản thì không có gì để
+khôi phục dữ liệu về — 6 tháng tiến độ, lịch SRS, và toàn bộ nhật ký giọng nói nằm trên
+máy. Nhật ký giọng nói là thứ mất đi đáng tiếc nhất (mục 10.5).
+
+Ba cách xử lý, không cách nào bắt người dùng phải nhớ mật khẩu — tôi khuyên cách 1:
+
+| Cách | Mô tả | Đánh đổi |
+|---|---|---|
+| **1. Sao lưu tự động ẩn danh** | App tự tạo một ID ngẫu nhiên gắn với máy, đồng bộ ngầm lên cloud. Người dùng không thấy gì cả. Khi cài máy mới, nhập ID đó (in ra được, lưu trong Zalo) để khôi phục | Cần backend nhỏ; người dùng phải cất giữ ID ở đâu đó |
+| 2. Xuất file thủ công | Nút "Sao lưu" trong cài đặt, xuất 1 file gửi qua Zalo | Miễn phí, nhưng phụ thuộc người dùng nhớ bấm |
+| 3. Không sao lưu | Chấp nhận rủi ro | Đơn giản nhất, nhưng mất máy là mất 6 tháng |
+
+Nếu chọn cách 1, lưu ý: hai hồ sơ dùng chung một ID máy, đồng bộ cùng lúc — vẫn không
+cần đăng nhập, vẫn tách dữ liệu theo `user_id`.
+
+**Nếu sau này bạn muốn dùng hai máy khác nhau** (ba bạn dùng máy tính bảng, bạn dùng điện
+thoại), thiết kế "chọn hồ sơ" này vẫn chạy được: mỗi máy chỉ hiện một hồ sơ. Nhưng lúc đó
+đồng bộ sẽ cần định danh thật hơn — hãy quyết trước khi code nếu đây là kịch bản có thể
+xảy ra.
 
 ### 13.3 Hai hồ sơ dự kiến
 
@@ -815,7 +862,7 @@ Ba hướng xử lý, tôi khuyên hướng 1:
 
 ### 13.4 Không chia sẻ tiến độ (mặc định)
 
-Mặc định hai tài khoản **không nhìn thấy** streak, điểm số, hay tiến độ của nhau. Lý do:
+Mặc định hai hồ sơ **không nhìn thấy** streak, điểm số, hay tiến độ của nhau. Lý do:
 người mới học rất dễ nản khi bị so sánh, và so sánh bố–con thì càng nhạy cảm.
 
 Ở phiên bản sau, có thể cân nhắc một tính năng **opt-in một chiều**: gửi lời động viên
@@ -864,7 +911,8 @@ kịch bản có thể đưa vào bản sau.
 | # | Câu hỏi | Quyết định |
 |---|---|---|
 | 2 | Role-play: LLM hay kịch bản cố định? | **Lai.** Kịch bản cố định cho phần lõi 45 phút; LLM (Haiku 4.5, có thể đổi sang Gemini Flash) chỉ cho nói tự do cuối buổi và buổi thứ 7, trần 45 lượt/ngày/người. Chi tiết ở **mục 12**. |
-| 5 | Bao nhiêu người dùng? | **2 tài khoản độc lập hoàn toàn** — bạn và ba bạn. Không chung streak, không chung SRS. Chi tiết ở **mục 13**. |
+| 5 | Bao nhiêu người dùng? | **2 hồ sơ độc lập hoàn toàn** — bạn và ba bạn. Không chung streak, không chung SRS. Chi tiết ở **mục 13**. |
+| 5b | Đăng nhập thế nào? | **Không đăng nhập.** Mở app → chạm chọn "Ba" hoặc "Con" → vào học. Không mật khẩu, không email. Chi tiết ở **mục 13.2**. |
 
 ### Còn cần bạn quyết trước khi tôi code
 
@@ -877,6 +925,11 @@ kịch bản có thể đưa vào bản sau.
    không? (Tôi khuyên **không** — mục tiêu là giao tiếp, thêm viết sẽ loãng 45 phút.)
 4. **Nếu placement của bạn ra Track D**, chọn hướng nào trong 3 hướng ở **mục 13.3**?
    (Tôi đề xuất hướng 1 — ưu tiên nội dung cho ba bạn trước.)
+5. **Sao lưu dữ liệu:** vì không có tài khoản, mất máy là mất 6 tháng tiến độ và toàn bộ
+   nhật ký giọng nói. Chọn cách nào trong 3 cách ở **mục 13.2**? (Tôi đề xuất **cách 1** —
+   sao lưu ẩn danh tự động, người dùng không phải thao tác gì.)
+6. **Một máy hay hai máy?** Nếu hai bố con dùng chung một máy thì thiết kế hiện tại là đủ.
+   Nếu mỗi người một máy, cần quyết cơ chế đồng bộ **trước khi code** (mục 13.2, đoạn cuối).
 
 ---
 
