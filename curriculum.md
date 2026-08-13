@@ -21,8 +21,10 @@
 9. [Giáo trình phát âm cho người Việt](#9-giáo-trình-phát-âm-cho-người-việt)
 10. [Cơ chế Streak & động lực](#10-cơ-chế-streak--động-lực)
 11. [Đánh giá định kỳ & tái phân lộ trình](#11-đánh-giá-định-kỳ--tái-phân-lộ-trình)
-12. [Bảng kê nội dung cần sản xuất](#12-bảng-kê-nội-dung-cần-sản-xuất)
-13. [Rủi ro & câu hỏi mở cần bạn quyết](#13-rủi-ro--câu-hỏi-mở-cần-bạn-quyết)
+12. [Kiến trúc hội thoại lai & ngân sách LLM](#12-kiến-trúc-hội-thoại-lai--ngân-sách-llm)
+13. [Hai người dùng — hai lộ trình độc lập](#13-hai-người-dùng--hai-lộ-trình-độc-lập)
+14. [Bảng kê nội dung cần sản xuất](#14-bảng-kê-nội-dung-cần-sản-xuất)
+15. [Rủi ro & những gì đã chốt](#15-rủi-ro--những-gì-đã-chốt)
 
 ---
 
@@ -72,7 +74,7 @@ tự bấm ghi âm).
   trưởng thành.
 - **Mắt và tai:** cần chữ đủ lớn, audio đủ rõ, không có timer đếm ngược gây áp lực.
 
-**Giả định thiết kế (cần bạn xác nhận ở mục 13):**
+**Giả định thiết kế (cần bạn xác nhận ở mục 15):**
 - Học chủ yếu trên điện thoại, có tai nghe, học ở nơi nói ra tiếng được.
 - Không có giáo viên người thật kèm — app phải tự đóng vai bạn thoại.
 - Tiếng Việt được dùng làm ngôn ngữ giải thích trong giai đoạn 1, giảm dần và
@@ -631,7 +633,198 @@ Luôn hiển thị dạng **"trước → sau"** và **"việc mới bạn làm 
 
 ---
 
-## 12. Bảng kê nội dung cần sản xuất
+## 12. Kiến trúc hội thoại lai & ngân sách LLM
+
+> **Quyết định của bạn (đã chốt):** kịch bản cố định cho phần lõi 45 phút/ngày; LLM chỉ
+> dùng cho role-play tự do ngắn cuối buổi và cuối tuần, có giới hạn số lượt gọi/ngày.
+
+### 12.1 Hai vùng, ranh giới rõ ràng
+
+| | **Vùng A — Kịch bản cố định** | **Vùng B — LLM** |
+|---|---|---|
+| **Dùng ở đâu** | Toàn bộ 4 khối của buổi học chuẩn (SRS, Nghe, Shadowing, Ôn nhanh) + role-play có kịch bản của tuần | "Nói tự do" 5 phút cuối buổi (tuỳ chọn) + buổi thực chiến thứ 7 |
+| **Cách hoạt động** | Cây quyết định: mỗi lượt của app có 3–5 nhánh trả lời tuỳ theo ý định người học | Model sinh lời thoại theo system prompt ràng buộc vai + trình độ |
+| **Chi phí** | **0đ** | Theo lượt gọi (mục 12.3) |
+| **Hoạt động offline** | Có | Không |
+| **Tỉ lệ thời lượng** | ~90% | ~10% |
+
+**Nguyên tắc bất di bất dịch: Vùng B không bao giờ chặn tiến độ.** Hết quota, mất mạng,
+API lỗi — buổi học vẫn hoàn thành đủ 4 khối và vẫn tính streak. Người học chỉ thấy dòng
+chữ *"Phần nói tự do hôm nay đã dùng hết. Mai gặp lại nhé."* — không có màn hình lỗi.
+
+### 12.2 Nhận diện ý định (intent) — cái làm Vùng A không nhàm
+
+Kịch bản cố định chỉ chán khi nó khớp câu theo chuỗi ký tự. Thay vào đó:
+
+```
+Người học nói → ASR ra text → phân loại ý định (on-device, không tốn tiền)
+                                    ↓
+        ┌───────────────┬───────────────┬───────────────┬──────────────┐
+     Đúng ý          Gần đúng        Sai ý          Câu cứu hộ      Im lặng
+   → nhánh chính   → nhánh chính    → nhánh sửa   → app nói chậm   → gợi ý
+                     + ghi nhận       nhẹ nhàng      lại 1 lần        sau 8s
+```
+
+Phân loại ý định dùng danh sách từ khoá + đối chiếu mẫu câu của tuần, chạy ngay trên máy.
+Với 130 kịch bản × ~5 nhánh/lượt, người học không cảm thấy lặp trong 6 tháng.
+
+### 12.3 Ngân sách LLM — con số thật
+
+**Ước lượng một lượt role-play tự do:**
+
+| Thành phần | Token |
+|---|---|
+| System prompt (vai diễn + ràng buộc trình độ + độ dài câu) | ~700 |
+| Lịch sử hội thoại (6–10 lượt, cắt cửa sổ trượt) | ~500 |
+| **Tổng input/lượt** | **~1.200** |
+| Output/lượt (câu trả lời ngắn của "nhân vật") | ~60 |
+
+**Chi phí theo model** (giá công bố, USD/1 triệu token):
+
+| Model | Input | Output | Chi phí/lượt | Ghi chú |
+|---|---|---|---|---|
+| **Claude Haiku 4.5** (`claude-haiku-4-5`) | $1,00 | $5,00 | **~$0,0015** (~39đ) | Rẻ nhất trong dòng Claude, chất lượng ổn cho hội thoại ngắn |
+| Claude Sonnet 5 | $3,00 | $15,00 | ~$0,0045 (~117đ) | Chỉ cân nhắc nếu Haiku diễn vai quá cứng |
+| Gemini Flash (free tier) | 0 | 0 | 0đ | Xem cảnh báo bên dưới |
+
+**Quota đề xuất và tổng chi phí (Haiku 4.5):**
+
+| Hạng mục | Số lượt/ngày/người | Ghi chú |
+|---|---|---|
+| Nói tự do cuối buổi (T2–T6) | 12 | Đủ cho 5 phút hội thoại |
+| Buổi thực chiến thứ 7 | 40 | Role-play dài 15 phút |
+| **Trần cứng/ngày/người** | **45** | Vượt trần → chuyển về kịch bản cố định |
+
+```
+Trường hợp xấu nhất: 2 người × 45 lượt × 30 ngày = 2.700 lượt/tháng
+                     2.700 × $0,0015 = $4,05/tháng  ≈  105.000đ/tháng
+
+Thực tế (T2–T6 dùng 12, T7 dùng 40, CN 0):
+                     2 người × ~100 lượt/tuần × 4,3 tuần = ~860 lượt/tháng
+                     ≈ $1,30/tháng  ≈  34.000đ/tháng
+```
+
+> **Kết luận:** ở quy mô 2 người, chi phí LLM không phải là vấn đề cần tối ưu. Trần cứng
+> 45 lượt/ngày/người tồn tại để **chống sự cố** (bug vòng lặp gọi API, con nghịch app),
+> không phải để tiết kiệm tiền.
+
+### 12.4 Về prompt caching — không áp dụng được ở đây
+
+Bạn có thể nghĩ tới việc cache system prompt để giảm giá (cache read chỉ ~0,1× giá gốc).
+Nhưng **Haiku 4.5 yêu cầu prefix tối thiểu 4.096 token mới cache được**, trong khi system
+prompt của ta chỉ ~700 token. Cache sẽ im lặng không hoạt động — không báo lỗi, chỉ là
+`cache_creation_input_tokens = 0`.
+
+Đừng nhồi prompt cho đủ 4.096 token để ép cache: cache write tốn 1,25× giá gốc, tức là
+bạn trả nhiều hơn để tiết kiệm ít hơn. **Bỏ qua caching ở phiên bản này.**
+
+### 12.5 Về Gemini Flash free tier — cảnh báo cần cân nhắc
+
+Bạn nhắc tới ưu tiên free tier. Có ba điểm cần biết trước khi quyết:
+
+1. **Dữ liệu free tier thường được dùng để cải thiện sản phẩm.** Nghĩa là lời thoại tiếng
+   Anh của ba bạn trong lúc luyện tập có thể được xử lý ngoài phạm vi riêng tư. Với app
+   gia đình, đây là điều bạn nên biết chứ không phải điều tôi tự quyết thay bạn.
+2. **Rate limit của free tier thay đổi không báo trước.** App có thể bị chặn ngay giữa
+   buổi học của ba bạn — đúng lúc tệ nhất.
+3. **Khoản tiết kiệm là ~34.000đ/tháng.** Ở mức đó, đánh đổi lấy rủi ro (1) và (2) là
+   không đáng, cho một app mà mục tiêu là ba bạn học đều 6 tháng không nản.
+
+**Đề xuất của tôi:** dùng **Haiku 4.5 làm mặc định**, chi phí thực tế ~34.000đ/tháng.
+
+**Nhưng thiết kế provider-agnostic** để bạn đổi ý lúc nào cũng được:
+
+```
+interface ConversationProvider {
+    reply(systemPrompt, history, userUtterance) -> { text, latencyMs, tokensUsed }
+}
+    ├── ClaudeProvider     (claude-haiku-4-5)   ← mặc định
+    ├── GeminiProvider     (flash, free tier)   ← bật bằng config
+    └── ScriptedProvider   (cây quyết định)     ← fallback khi 2 cái trên fail
+```
+
+Đổi provider = đổi 1 dòng config, không đụng vào logic bài học. Tầng `ScriptedProvider`
+là thứ đảm bảo nguyên tắc "Vùng B không bao giờ chặn tiến độ" ở mục 12.1.
+
+### 12.6 Ràng buộc system prompt cho role-play
+
+Model dễ nói quá dài và quá khó so với trình độ người học. Ba ràng buộc bắt buộc:
+
+| Ràng buộc | Chi tiết |
+|---|---|
+| **Độ dài** | Giai đoạn 1: tối đa 12 từ/lượt. GĐ2: 20 từ. GĐ3: tự nhiên, không giới hạn |
+| **Vốn từ** | Chỉ dùng từ đã dạy + 10% từ mới có thể đoán từ ngữ cảnh |
+| **Vai diễn** | Bám mục tiêu giao tiếp của tuần, không lái sang chủ đề khác, không dạy ngữ pháp |
+| **Không bao giờ** | Không chuyển sang tiếng Việt; không khen sáo rỗng ("Great job!") sau mỗi câu |
+
+Ràng buộc độ dài phải kiểm tra **ở phía app** sau khi nhận kết quả, không chỉ ghi trong
+prompt — nếu vượt quá, cắt ở câu hoàn chỉnh gần nhất.
+
+---
+
+## 13. Hai người dùng — hai lộ trình độc lập
+
+> **Quyết định của bạn (đã chốt):** 2 tài khoản riêng (bạn và ba bạn), tiến độ / nội dung /
+> lộ trình cá nhân hoá độc lập hoàn toàn. Không dùng chung streak, không dùng chung SRS.
+
+### 13.1 Ranh giới dữ liệu
+
+| Dùng chung (read-only) | Riêng từng tài khoản (read-write) |
+|---|---|
+| Thư viện nội dung: 1.300 thẻ từ vựng, 130 đoạn nghe, 130 kịch bản role-play, 12 module phát âm, 4 bộ test | Kết quả placement + track được gán |
+| Định nghĩa 26 tuần & cấu trúc giai đoạn | Toàn bộ lịch SRS (mỗi thẻ có `due_date`, `stability`, `difficulty` riêng) |
+| Bộ audio, ảnh, animation | Streak, ngày đóng băng còn lại, kỷ lục cá nhân |
+| | Điểm phát âm theo từng âm, danh sách âm cần sửa |
+| | Nhật ký giọng nói (file ghi âm) |
+| | Bảng "việc tôi làm được", tiến độ tuần |
+| | Quota LLM trong ngày (đếm riêng, không chia nhau) |
+| | Tuỳ chọn hiển thị: cỡ chữ, tốc độ audio mặc định |
+
+**Quy tắc:** mọi bảng dữ liệu học tập đều có khoá `user_id`. Thư viện nội dung là bảng
+duy nhất không có khoá đó. Nếu một truy vấn nào đó không lọc theo `user_id`, đó là bug.
+
+### 13.2 Đăng nhập & chuyển tài khoản
+
+- **Đăng ký:** email + mật khẩu là đủ cho 2 người. Không cần OAuth, không cần SMS.
+- **Chuyển tài khoản nhanh:** hai bố con có thể dùng chung 1 máy (máy tính bảng ở nhà
+  chẳng hạn). Thiết kế nút chuyển tài khoản ngay màn hình chính, **không bắt đăng nhập
+  lại** — chỉ cần mã PIN 4 số nếu bạn muốn có ranh giới.
+- **Phiên đăng nhập dài:** không tự đăng xuất. Bắt người lớn tuổi gõ lại mật khẩu mỗi
+  tuần là cách nhanh nhất để họ bỏ app.
+
+### 13.3 Hai hồ sơ dự kiến
+
+| | **Ba bạn** | **Bạn** |
+|---|---|---|
+| Trình độ | Sơ cấp A1–A2 (đã xác nhận) | Chưa biết — placement test quyết định |
+| Track dự kiến | **Track C** (nén GĐ1 còn 5 tuần), khả năng cao có ghi đè lịch nghe sang Track B | Chưa xác định |
+| Cỡ chữ mặc định | Lớn | Tiêu chuẩn |
+| Tốc độ audio khởi điểm | 0,85× | Theo kết quả placement |
+
+**Một hệ quả về nội dung bạn cần biết trước:** nếu bạn làm placement test và ra **Track D
+(B1+)**, lộ trình của bạn sẽ bỏ qua tuần 1–8 và cần **8 tuần tình huống nâng cao** — hiện
+mới chỉ là danh sách gạch đầu dòng ở cuối mục 7, chưa có kịch bản. Tức là bạn sẽ chạm
+"đáy" nội dung vào khoảng tháng thứ 4.
+
+Ba hướng xử lý, tôi khuyên hướng 1:
+
+1. **Chấp nhận và sản xuất sau.** Ba bạn là người dùng chính; làm xong nội dung cho ba
+   bạn trước, sản xuất 8 tuần nâng cao trong lúc ba bạn đang học tháng 2–3.
+2. Bạn học chậm hơn mức track đề xuất, dùng chung nội dung với ba bạn.
+3. Sản xuất đủ 34 tuần ngay từ đầu — tăng ~30% khối lượng nội dung ở mục 14.
+
+### 13.4 Không chia sẻ tiến độ (mặc định)
+
+Mặc định hai tài khoản **không nhìn thấy** streak, điểm số, hay tiến độ của nhau. Lý do:
+người mới học rất dễ nản khi bị so sánh, và so sánh bố–con thì càng nhạy cảm.
+
+Ở phiên bản sau, có thể cân nhắc một tính năng **opt-in một chiều**: gửi lời động viên
+("Ba học 30 ngày liên tiếp rồi!") mà không kèm con số so sánh. Nhưng chỉ khi cả hai cùng
+bật, và không đưa vào v1.
+
+---
+
+## 14. Bảng kê nội dung cần sản xuất
 
 Ước lượng để bạn cân nhắc khối lượng trước khi duyệt.
 
@@ -652,7 +845,7 @@ kịch bản có thể đưa vào bản sau.
 
 ---
 
-## 13. Rủi ro & câu hỏi mở cần bạn quyết
+## 15. Rủi ro & những gì đã chốt
 
 ### Rủi ro đã nhận diện
 
@@ -661,24 +854,29 @@ kịch bản có thể đưa vào bản sau.
 | Chấm phát âm sai → người học mất niềm tin | 🔴 Cao | Dùng 3 mức mô tả thay vì điểm số ở GĐ1; luôn cho nghe đối chiếu để tự phán đoán; không bao giờ chặn tiến độ |
 | Bỏ cuộc ở tuần 3–5 (giai đoạn hết hứng mới) | 🔴 Cao | Buổi tối thiểu 5 phút; tuần 4 có tình huống gọi món — thứ ứng dụng được ngay |
 | Nội dung nghe quá khó ở GĐ2 gây nản | 🟡 TB | Tự động hạ tốc độ khi 3 buổi liên tiếp < 60% |
-| Role-play bằng LLM trả lời lệch vai hoặc quá dài | 🟡 TB | Ràng buộc kịch bản, giới hạn độ dài lượt của app theo trình độ người học |
+| Role-play bằng LLM trả lời lệch vai hoặc quá dài | 🟡 TB | Ràng buộc system prompt (mục 12.6) **và** cắt độ dài ở phía app — không chỉ tin vào prompt |
+| Vùng B (LLM) lỗi hoặc hết quota làm gãy buổi học | 🟡 TB | `ScriptedProvider` fallback (mục 12.5); buổi học vẫn đủ 4 khối, vẫn tính streak |
+| Bạn chạm "đáy" nội dung ở tháng 4 nếu placement ra Track D | 🟡 TB | Mục 13.3 — sản xuất 8 tuần nâng cao trong lúc ba bạn đang học tháng 2–3 |
 | 45 phút quá dài, thực tế chỉ trụ được 25 | 🟡 TB | Kiến trúc 4 khối cho phép cắt ngang bất cứ đâu mà vẫn có giá trị |
 
-### Câu hỏi cần bạn quyết trước khi tôi code
+### Đã chốt
+
+| # | Câu hỏi | Quyết định |
+|---|---|---|
+| 2 | Role-play: LLM hay kịch bản cố định? | **Lai.** Kịch bản cố định cho phần lõi 45 phút; LLM (Haiku 4.5, có thể đổi sang Gemini Flash) chỉ cho nói tự do cuối buổi và buổi thứ 7, trần 45 lượt/ngày/người. Chi tiết ở **mục 12**. |
+| 5 | Bao nhiêu người dùng? | **2 tài khoản độc lập hoàn toàn** — bạn và ba bạn. Không chung streak, không chung SRS. Chi tiết ở **mục 13**. |
+
+### Còn cần bạn quyết trước khi tôi code
 
 1. **Giọng chuẩn:** Mỹ hay Anh-Anh làm giọng mẫu chính? (Tôi đề xuất **Mỹ** —
    nhiều tài nguyên hơn và phổ biến hơn ở Việt Nam.)
-2. **Role-play do LLM đóng vai hay kịch bản cây quyết định cố định?** LLM tự
-   nhiên hơn nhiều nhưng tốn chi phí và khó kiểm soát; kịch bản cố định rẻ và ổn
-   định nhưng lặp lại nhanh chán. (Tôi đề xuất **lai**: kịch bản cố định cho
-   GĐ1, LLM có ràng buộc từ GĐ2.)
-3. **Offline hay bắt buộc online?** Ảnh hưởng lớn tới việc chọn engine chấm phát
-   âm và nơi lưu audio.
-4. **Nội dung đọc/viết:** giáo trình này gần như bỏ hẳn kỹ năng viết. Bạn có cần
+2. **Offline hay bắt buộc online?** Ảnh hưởng lớn tới việc chọn engine chấm phát
+   âm và nơi lưu audio. Lưu ý: Vùng A (mục 12.1) đã được thiết kế để chạy offline,
+   nên câu hỏi thực chất là *engine chấm phát âm* chạy trên máy hay trên server.
+3. **Nội dung đọc/viết:** giáo trình này gần như bỏ hẳn kỹ năng viết. Bạn có cần
    không? (Tôi khuyên **không** — mục tiêu là giao tiếp, thêm viết sẽ loãng 45 phút.)
-5. **Số lượng người dùng:** chỉ dành riêng cho ba bạn, hay định làm sản phẩm cho
-   nhiều người? Câu trả lời thay đổi hoàn toàn kiến trúc dữ liệu và khối lượng
-   nội dung cần sản xuất ở mục 12.
+4. **Nếu placement của bạn ra Track D**, chọn hướng nào trong 3 hướng ở **mục 13.3**?
+   (Tôi đề xuất hướng 1 — ưu tiên nội dung cho ba bạn trước.)
 
 ---
 
