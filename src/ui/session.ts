@@ -26,6 +26,7 @@ import { getWeek } from "../content";
 import { closeMic, primeMicrophone, stopSpeaking } from "../platform/speech";
 import { el, mount } from "./dom";
 import {
+  runFreeTalkBlock,
   runListeningBlock,
   runReviewBlock,
   runSpeakingBlock,
@@ -172,9 +173,27 @@ export async function runSession(
           deck = deck.map((card) => touched.get(`${card.itemId}:${card.direction}`) ?? card);
           result = await runReviewBlock(context, deck);
           break;
+        default:
+          // freeTalk is not part of BLOCK_ORDER; it runs after the loop.
+          throw new Error(`unexpected block: ${kind}`);
       }
 
       state = finishBlock(state, result);
+    }
+
+    // The optional closing block (§12.1). Its own failures are already handled
+    // by the fallback provider, but a crash here must not cost the learner the
+    // four blocks they just finished.
+    try {
+      state = finishBlock(
+        state,
+        await runFreeTalkBlock(context, {
+          accountId,
+          phase: options.week <= 8 ? 1 : options.week <= 17 ? 2 : 3,
+        }),
+      );
+    } catch (error) {
+      console.warn("free talk did not run", error);
     }
   } finally {
     stopSpeaking();

@@ -31,6 +31,8 @@ import {
   speak,
   stopSpeaking,
 } from "../platform/speech";
+import { createConversationProvider } from "../platform/conversation";
+import type { ConversationTurn } from "../platform/conversation";
 
 export type BlockContext = {
   root: HTMLElement;
@@ -551,6 +553,101 @@ export async function runReviewBlock(
     seconds: Math.round((Date.now() - startedAt) / 1000),
     itemsAttempted: attempted,
     itemsCorrect: correct,
+    avgLatencyMs: average(latencies),
+  };
+}
+
+// --- block 5: free talk (Zone B) ---------------------------------------------
+
+/** How many exchanges the closing free-talk runs for (§12.3 budget). */
+const FREE_TALK_TURNS = 6;
+
+/**
+ * Five minutes of unscripted conversation to close the session (§12.1).
+ *
+ * The only part of the app that calls a model, and the only part that costs
+ * money. It is also the only part allowed to be skipped: when the backend is
+ * unconfigured, offline or out of quota, the scripted provider answers instead
+ * and the learner is never shown a failure.
+ */
+export async function runFreeTalkBlock(
+  context: BlockContext,
+  options: { accountId: string; phase: number },
+): Promise<BlockResult> {
+  const startedAt = Date.now();
+  const provider = createConversationProvider();
+
+  const knownPhrases = context.week.vocabulary.map((item) => item.phrase);
+  const situation = context.week.roleplay.titleVi;
+
+  const history: ConversationTurn[] = [];
+  let attempted = 0;
+  let spoken = 0;
+  const latencies: number[] = [];
+
+  for (let turn = 0; turn < FREE_TALK_TURNS; turn++) {
+    const said = turn === 0 ? "Hello." : history[history.length - 1]?.text ?? "Hello.";
+
+    const reply = await provider.reply({
+      accountId: options.accountId,
+      situation,
+      phase: options.phase,
+      history: [...history],
+      userText: said,
+      knownPhrases,
+    });
+    history.push({ role: "assistant", text: reply.text });
+
+    const feedback = el("p", { class: "feedback" }, [""]);
+    context.root.replaceChildren(
+      el("main", { class: "block" }, [
+        header("Nói tự do", "Trả lời thoải mái, sai cũng không sao", `Nói chuyện · ${turn + 1}/${FREE_TALK_TURNS}`),
+        el("section", { class: "dialogue" }, [
+          el("p", { class: "dialogue__who" }, ["Anna"]),
+          el("p", { class: "dialogue__say" }, [reply.text]),
+        ]),
+        feedback,
+      ]),
+    );
+
+    await speak(reply.text, { rate: context.audioRate });
+
+    let userText = "";
+    let heardSomething = false;
+    let latency = RESPONSE_DEADLINE_MS;
+
+    if (context.micReady && recognitionSupported()) {
+      const heard = await recognizeSpeech();
+      if (heard) {
+        userText = heard.transcript;
+        heardSomething = heard.spoken;
+        latency = heard.latencyMs;
+      }
+    }
+
+    if (!heardSomething) {
+      const attempt = await captureAttempt(context, feedback);
+      heardSomething = attempt.spoken;
+      latency = attempt.latencyMs;
+      // Without a transcript there is nothing to send back, so the
+      // conversation continues from the assistant's own last line.
+      if (!userText) userText = heardSomething ? "Yes." : "Sorry, I don't understand.";
+    }
+
+    history.push({ role: "user", text: userText });
+    attempted++;
+    latencies.push(latency);
+    if (heardSomething) spoken++;
+  }
+
+  stopSpeaking();
+
+  return {
+    kind: "freeTalk",
+    completed: attempted > 0,
+    seconds: Math.round((Date.now() - startedAt) / 1000),
+    itemsAttempted: attempted,
+    itemsCorrect: spoken,
     avgLatencyMs: average(latencies),
   };
 }

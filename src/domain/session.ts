@@ -14,7 +14,7 @@
 
 import type { SessionTier } from "../data/schema";
 
-export type BlockKind = "vocabulary" | "listening" | "speaking" | "review";
+export type BlockKind = "vocabulary" | "listening" | "speaking" | "review" | "freeTalk";
 
 /** §5.1 — the baseline split of a full session. */
 export const BLOCK_MINUTES: Record<BlockKind, number> = {
@@ -22,6 +22,9 @@ export const BLOCK_MINUTES: Record<BlockKind, number> = {
   listening: 12,
   speaking: 18,
   review: 5,
+  // Sits outside the 45 minutes: §12.1 keeps free talk optional, because it is
+  // the one block that can fail for reasons the learner cannot fix.
+  freeTalk: 5,
 };
 
 export const BLOCK_ORDER: readonly BlockKind[] = [
@@ -31,11 +34,15 @@ export const BLOCK_ORDER: readonly BlockKind[] = [
   "review",
 ];
 
+/** The optional closing block, run after the four required ones. */
+export const OPTIONAL_BLOCKS: readonly BlockKind[] = ["freeTalk"];
+
 export const BLOCK_LABELS_VI: Record<BlockKind, string> = {
   vocabulary: "Từ hôm nay",
   listening: "Nghe thật",
   speaking: "Mở miệng",
   review: "Chốt lại",
+  freeTalk: "Nói tự do",
 };
 
 export type BlockResult = {
