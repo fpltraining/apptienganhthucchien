@@ -65,7 +65,14 @@ export type AccountProfile = {
   accountId: AccountId;
   /** Null until the placement test is taken (curriculum §4). */
   track: "A" | "B" | "C" | "D" | null;
+  /**
+   * Listening judged on its own. When it lags `track` it governs the listening
+   * ladder instead, which is the whole point of §4.4.
+   */
+  listeningTrack: "A" | "B" | "C" | "D" | null;
   placementScore: number | null;
+  /** Where in the 26 weeks this learner is: from placement, then progress. */
+  currentWeek: number;
   /** Set once the learner finishes onboarding. */
   startedOn: string | null;
   /** Playback rate for listening drills; raised as the ear improves. */

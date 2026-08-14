@@ -13,7 +13,7 @@ import {
   recallAccount,
   rememberAccount,
 } from "./data/accounts";
-import { loadAccount } from "./data/repository";
+import { loadAccount, saveProfile } from "./data/repository";
 import type { AccountId } from "./data/schema";
 import type { StreakEvent } from "./domain/streak";
 import { mount } from "./ui/dom";
@@ -21,6 +21,8 @@ import { emptyEntries, renderAccountPicker } from "./ui/account-picker";
 import type { PickerEntry } from "./ui/account-picker";
 import { renderHome } from "./ui/home";
 import { runSession } from "./ui/session";
+import { renderPlacementOutcome, runPlacement } from "./ui/placement";
+import { primeMicrophone } from "./platform/speech";
 
 const root = document.querySelector<HTMLElement>("#app");
 if (!root) throw new Error("#app is missing from index.html");
@@ -53,6 +55,30 @@ async function openAccount(id: AccountId, events: StreakEvent[] = []): Promise<v
   rememberAccount(id);
 
   const { summary, events: settleEvents } = await loadAccount(id);
+
+  // First visit: find out where to start before showing a home screen whose
+  // numbers would all be zero anyway (§4).
+  if (summary.profile.track === null) {
+    const placed = await runPlacement({ root: root!, micReady: await primeMicrophone() });
+    if (placed) {
+      await saveProfile({
+        ...summary.profile,
+        track: placed.track,
+        listeningTrack: placed.listeningTrack,
+        placementScore: placed.total,
+        currentWeek: placed.startWeek,
+        audioRate: placed.audioRate,
+        startedOn: new Date().toISOString().slice(0, 10),
+      });
+      await new Promise<void>((resolve) => {
+        renderPlacementOutcome(root!, placed, resolve);
+      });
+      await openAccount(id, events);
+      return;
+    }
+    // Backed out — the home screen still works, and it asks again next time.
+  }
+
   const allEvents = [...settleEvents, ...events];
 
   mount(
@@ -67,18 +93,12 @@ async function openAccount(id: AccountId, events: StreakEvent[] = []): Promise<v
   );
 }
 
-/**
- * Starts a lesson and returns to the home screen when it ends.
- *
- * Which week to teach comes from the profile once the placement test exists;
- * until then everyone starts at week 1, which is the correct starting point for
- * the primary learner anyway (§4.4, track C notwithstanding).
- */
+/** Starts a lesson at the learner's current week and returns home after. */
 async function startLesson(id: AccountId): Promise<void> {
   const { summary } = await loadAccount(id);
 
   const outcome = await runSession(root!, id, {
-    week: 1,
+    week: summary.profile.currentWeek,
     audioRate: summary.profile.audioRate,
     lastStudyDay: summary.streak.lastCountedDay,
   });

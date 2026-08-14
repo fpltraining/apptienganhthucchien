@@ -38,7 +38,9 @@ function createProfile(accountId: AccountId): AccountProfile {
   return {
     accountId,
     track: null,
+    listeningTrack: null,
     placementScore: null,
+    currentWeek: 1,
     startedOn: null,
     // 0.85x is the listening speed phase 1 starts at (curriculum §5.2).
     audioRate: 0.85,
