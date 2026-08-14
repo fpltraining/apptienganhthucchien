@@ -1,0 +1,351 @@
+/**
+ * Tuần 2 — Số, giờ, ngày tháng, giá tiền (curriculum §7).
+ *
+ * Trọng tâm phát âm: /θ/ (three, thirty) so với /t/, và phân biệt 13 với 30.
+ * Đây không phải chuyện làm màu: nghe nhầm "fifteen" thành "fifty" là nhầm giá
+ * tiền, nhầm giờ hẹn, nhầm số nhà. Cả tuần này xoay quanh đúng một chỗ đó.
+ */
+
+import type { WeekContent } from "./types";
+
+export const week02: WeekContent = {
+  week: 2,
+  titleVi: "Số, giờ, ngày tháng, giá tiền",
+  pronunciationFocusVi: "Âm /θ/ (three, thirty) và phân biệt 13 với 30",
+
+  vocabulary: [
+    {
+      id: "w2-how-much",
+      week: 2,
+      phrase: "How much is it?",
+      meaningVi: "Cái này bao nhiêu tiền?",
+      situation: "Hỏi giá — câu dùng nhiều nhất khi đi mua bán",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-its-thirty",
+      week: 2,
+      phrase: "It's thirty thousand dong.",
+      meaningVi: "Ba mươi nghìn đồng.",
+      situation: "Nói giá tiền",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-too-expensive",
+      week: 2,
+      phrase: "That's too expensive.",
+      meaningVi: "Đắt quá.",
+      situation: "Chê giá, mở đường mặc cả",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-what-time",
+      week: 2,
+      phrase: "What time is it?",
+      meaningVi: "Mấy giờ rồi?",
+      situation: "Hỏi giờ",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-half-past",
+      week: 2,
+      phrase: "It's half past seven.",
+      meaningVi: "Bảy giờ rưỡi.",
+      situation: "Nói giờ kiểu người bản xứ hay dùng",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-quarter-to",
+      week: 2,
+      phrase: "It's a quarter to nine.",
+      meaningVi: "Chín giờ kém mười lăm.",
+      situation: "Nói giờ",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-what-time-open",
+      week: 2,
+      phrase: "What time do you open?",
+      meaningVi: "Mấy giờ các bạn mở cửa?",
+      situation: "Hỏi giờ mở cửa của quán, cửa hàng",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-what-time-close",
+      week: 2,
+      phrase: "What time do you close?",
+      meaningVi: "Mấy giờ các bạn đóng cửa?",
+      situation: "Hỏi giờ đóng cửa",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-see-you-at",
+      week: 2,
+      phrase: "See you at six o'clock.",
+      meaningVi: "Hẹn gặp lúc sáu giờ.",
+      situation: "Chốt giờ hẹn",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-thirteen",
+      week: 2,
+      phrase: "Thirteen, not thirty.",
+      meaningVi: "Mười ba, không phải ba mươi.",
+      situation: "Nói lại cho rõ khi người ta nghe nhầm",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-fifteen-fifty",
+      week: 2,
+      phrase: "Fifteen or fifty?",
+      meaningVi: "Mười lăm hay năm mươi?",
+      situation: "Hỏi lại khi nghe không chắc con số",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-phone-number",
+      week: 2,
+      phrase: "What's your phone number?",
+      meaningVi: "Số điện thoại của bạn là gì?",
+      situation: "Xin số liên lạc",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-my-number-is",
+      week: 2,
+      phrase: "My number is oh nine oh, three three four.",
+      meaningVi: "Số của tôi là 090 334.",
+      situation: "Đọc số điện thoại — đọc từng chữ số, không đọc cả cụm",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-say-slowly-numbers",
+      week: 2,
+      phrase: "Could you say the number slowly?",
+      meaningVi: "Bạn đọc số chậm lại được không?",
+      situation: "Câu cứu hộ khi người ta đọc số nhanh quá",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-write-it-down",
+      week: 2,
+      phrase: "Could you write it down, please?",
+      meaningVi: "Bạn ghi ra giấy giúp tôi được không?",
+      situation: "Khi nghe số mãi không ra — cứ xin viết ra",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-today-is",
+      week: 2,
+      phrase: "Today is Monday.",
+      meaningVi: "Hôm nay là thứ Hai.",
+      situation: "Nói thứ trong tuần",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-tomorrow",
+      week: 2,
+      phrase: "See you tomorrow.",
+      meaningVi: "Hẹn gặp ngày mai.",
+      situation: "Tạm biệt khi hẹn hôm sau",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-next-week",
+      week: 2,
+      phrase: "I'll come back next week.",
+      meaningVi: "Tuần sau tôi quay lại.",
+      situation: "Hẹn lần sau",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-what-date",
+      week: 2,
+      phrase: "What's the date today?",
+      meaningVi: "Hôm nay ngày mấy?",
+      situation: "Hỏi ngày",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-the-third",
+      week: 2,
+      phrase: "It's the third of May.",
+      meaningVi: "Ngày mùng ba tháng Năm.",
+      situation: "Nói ngày tháng",
+      isCoreChunk: false,
+    },
+    {
+      id: "w2-two-tickets",
+      week: 2,
+      phrase: "Two tickets, please.",
+      meaningVi: "Cho tôi hai vé.",
+      situation: "Mua vé — bao nhiêu cái thì nói bấy nhiêu",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-can-i-pay-card",
+      week: 2,
+      phrase: "Can I pay by card?",
+      meaningVi: "Tôi trả bằng thẻ được không?",
+      situation: "Hỏi cách thanh toán",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-here-you-are",
+      week: 2,
+      phrase: "Here you are.",
+      meaningVi: "Của bạn đây.",
+      situation: "Khi đưa tiền hoặc đưa đồ cho người ta",
+      isCoreChunk: true,
+    },
+    {
+      id: "w2-keep-the-change",
+      week: 2,
+      phrase: "Keep the change.",
+      meaningVi: "Khỏi thối lại.",
+      situation: "Trả tiền, không lấy tiền thừa",
+      isCoreChunk: false,
+    },
+  ],
+
+  listening: {
+    id: "w2-listen-tickets",
+    week: 2,
+    titleVi: "Mua vé ở quầy",
+    lines: [
+      { speaker: "Anna", text: "Good morning. How can I help you?" },
+      { speaker: "Hung", text: "Two tickets, please. How much is it?" },
+      { speaker: "Anna", text: "That's thirty thousand dong for two." },
+      { speaker: "Hung", text: "Sorry, thirteen or thirty?" },
+      { speaker: "Anna", text: "Thirty. Three, zero." },
+      { speaker: "Hung", text: "Okay. Here you are. What time does it start?" },
+      { speaker: "Anna", text: "At a quarter to nine. Enjoy!" },
+    ],
+    gist: {
+      promptVi: "Ông Hùng đang làm gì?",
+      options: ["Mua vé", "Hỏi đường về nhà", "Đặt bàn ăn tối"],
+      answerIndex: 0,
+    },
+    detail: [
+      {
+        promptVi: "Hai vé hết bao nhiêu tiền?",
+        options: ["30 nghìn", "13 nghìn", "50 nghìn"],
+        answerIndex: 0,
+      },
+      {
+        promptVi: "Vì sao ông Hùng hỏi lại?",
+        options: ["Không chắc là 13 hay 30", "Không đủ tiền", "Muốn mua thêm vé"],
+        answerIndex: 0,
+      },
+      {
+        promptVi: "Mấy giờ bắt đầu?",
+        options: ["8 giờ 45", "9 giờ 15", "7 giờ 30"],
+        answerIndex: 0,
+      },
+    ],
+    gaps: [
+      { before: "Two tickets, please. How", answer: "much", after: "is it?" },
+      { before: "Sorry, thirteen or", answer: "thirty", after: "?" },
+      { before: "At a quarter to", answer: "nine", after: "." },
+    ],
+  },
+
+  shadowing: [
+    {
+      id: "w2-sh-1",
+      text: "Three, thirteen, thirty.",
+      focusVi: "Lưỡi thò ra giữa hai hàm răng cho âm 'th'",
+    },
+    {
+      id: "w2-sh-2",
+      text: "Fifteen or fifty? Fifteen.",
+      focusVi: "'Fifteen' nhấn cuối, 'fifty' nhấn đầu",
+    },
+    {
+      id: "w2-sh-3",
+      text: "How much is it, please?",
+      focusVi: "Bật rõ 'ch' trong 'much'",
+    },
+    {
+      id: "w2-sh-4",
+      text: "It's a quarter to nine.",
+      focusVi: "Nối 'quarter' với 'to' cho mượt",
+    },
+    {
+      id: "w2-sh-5",
+      text: "Could you say the number slowly?",
+      focusVi: "Bật rõ 'd' cuối trong 'could'",
+    },
+  ],
+
+  roleplay: {
+    id: "w2-rp-market",
+    week: 2,
+    titleVi: "Hỏi giá ở cửa hàng",
+    goalVi: "Hỏi được giá, nghe rõ con số, và trả tiền",
+    startTurnId: "start",
+    turns: [
+      {
+        id: "start",
+        say: "Hello! Can I help you?",
+        sayVi: "Xin chào! Tôi giúp gì được bạn?",
+        hints: ["How much is it?", "Hello. How much is this?"],
+        branches: [{ keywords: ["much", "how", "price", "cost"], next: "price" }],
+        fallbackNext: "repeat-help",
+      },
+      {
+        id: "repeat-help",
+        say: "Sorry — what would you like to know?",
+        sayVi: "Xin lỗi — bạn muốn hỏi gì ạ?",
+        hints: ["How much is it?"],
+        branches: [{ keywords: ["much", "how", "price", "cost"], next: "price" }],
+        fallbackNext: "price",
+      },
+      {
+        id: "price",
+        say: "It's fifty thousand dong.",
+        sayVi: "Năm mươi nghìn đồng.",
+        // "Hỏi lại con số" là kỹ năng của tuần này, nên cả hai nhánh đều đúng:
+        // hỏi lại cho chắc cũng tốt như nghe ra ngay từ đầu.
+        hints: ["Fifteen or fifty?", "That's too expensive."],
+        branches: [
+          { keywords: ["fifteen", "sorry", "again", "repeat"], next: "confirm-number" },
+          { keywords: ["expensive", "much", "cheaper"], next: "discount" },
+        ],
+        fallbackNext: "confirm-number",
+      },
+      {
+        id: "confirm-number",
+        say: "Fifty. Five, zero.",
+        sayVi: "Năm mươi. Năm, không.",
+        hints: ["That's too expensive.", "Okay. Can I pay by card?"],
+        branches: [
+          { keywords: ["expensive", "cheaper"], next: "discount" },
+          { keywords: ["card", "cash", "pay", "okay", "ok"], next: "pay" },
+        ],
+        fallbackNext: "pay",
+      },
+      {
+        id: "discount",
+        say: "Okay, forty thousand for you.",
+        sayVi: "Thôi được, bốn mươi nghìn cho bạn.",
+        hints: ["Okay. Can I pay by card?", "Here you are."],
+        branches: [{ keywords: ["card", "cash", "pay", "here", "okay", "ok"], next: "pay" }],
+        fallbackNext: "pay",
+      },
+      {
+        id: "pay",
+        say: "Yes, card is fine. Thank you! What time do you come back tomorrow?",
+        sayVi: "Vâng, thẻ cũng được. Cảm ơn! Mai bạn quay lại lúc mấy giờ?",
+        hints: ["See you at six o'clock.", "I'll come back next week."],
+        branches: [
+          {
+            keywords: ["six", "seven", "eight", "nine", "clock", "tomorrow", "week"],
+            next: null,
+          },
+        ],
+        fallbackNext: null,
+      },
+    ],
+  },
+};
