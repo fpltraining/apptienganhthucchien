@@ -352,6 +352,24 @@ button {
   opacity: 0.55;
 }
 
+/* The chosen and correct answers stay legible after the buttons disable, so a
+   wrong answer is something the learner can actually learn from. */
+.btn--choice.is-correct,
+.btn--choice.is-wrong {
+  opacity: 1;
+  color: var(--brand-ink);
+}
+
+.btn--choice.is-correct {
+  background: #2e6b4f;
+  border-color: #2e6b4f;
+}
+
+.btn--choice.is-wrong {
+  background: #a4443a;
+  border-color: #a4443a;
+}
+
 .dialogue {
   padding: 1.25rem;
   background: var(--card);

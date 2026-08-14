@@ -18,6 +18,10 @@ const BASE_URL = process.env.SMOKE_URL ?? "http://localhost:4173/";
 // The bundled browser and the npm package can disagree on version in CI
 // sandboxes; an explicit path avoids a download attempt.
 const EXECUTABLE_PATH = process.env.CHROMIUM_PATH;
+// Set SMOKE_SHOTS to a directory to save a screenshot of each distinct screen
+// the walk passes through. Reuses this walker rather than a separate script,
+// because a second driver of the same flow drifts out of step with this one.
+const SHOTS_DIR = process.env.SMOKE_SHOTS;
 
 const failures = [];
 function check(label, actual, expected) {
@@ -68,8 +72,15 @@ await page.getByRole("button", { name: "Bắt đầu" }).click();
  * the failure this catches, and it would catch it for a block added later too.
  */
 const blocksSeen = new Set();
+const shotsTaken = new Set();
 let steps = 0;
 const MAX_STEPS = 400;
+
+async function captureOnce(name) {
+  if (!SHOTS_DIR || shotsTaken.has(name)) return;
+  shotsTaken.add(name);
+  await page.screenshot({ path: `${SHOTS_DIR}/${name}.png` }).catch(() => undefined);
+}
 
 while (steps < MAX_STEPS) {
   steps++;
@@ -77,7 +88,11 @@ while (steps < MAX_STEPS) {
   if (await page.locator("text=Xong rồi!").count()) break;
 
   const step = await page.locator(".block__step").first().textContent().catch(() => null);
-  if (step) blocksSeen.add(step.split("·")[0].trim());
+  if (step) {
+    const name = step.split("·")[0].trim();
+    blocksSeen.add(name);
+    await captureOnce(name.replace(/\s+/g, "-").toLowerCase());
+  }
 
   // Only primary actions advance the lesson. Ghost buttons are the secondary
   // ones ("Nghe lại", "Bỏ qua"), and clicking those forever would look like
@@ -102,6 +117,7 @@ checkThat(
 
 // --- back home, with the session recorded ---
 await page.waitForSelector("text=Xong rồi!");
+await captureOnce("tong-ket");
 await page.getByRole("button", { name: "Về trang chính" }).click();
 await page.waitForSelector(".home");
 

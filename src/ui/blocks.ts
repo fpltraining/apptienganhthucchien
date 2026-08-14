@@ -301,11 +301,18 @@ function askChoice(
           type: "button",
           onclick: () => {
             const right = index === answerIndex;
-            feedback.textContent = right
-              ? "Đúng rồi."
-              : `Chưa đúng — đáp án là: ${options[answerIndex]}`;
-            for (const button of buttons) button.setAttribute("disabled", "");
-            setTimeout(() => resolve(right), right ? 600 : 1600);
+            feedback.textContent = right ? "Đúng rồi." : "Chưa đúng.";
+
+            // Mark both the chosen answer and the correct one. Disabling the
+            // buttons alone leaves the learner unable to see which one they
+            // picked, which makes a wrong answer impossible to learn from.
+            for (const [position, button] of buttons.entries()) {
+              button.setAttribute("disabled", "");
+              if (position === answerIndex) button.classList.add("is-correct");
+              if (position === index && !right) button.classList.add("is-wrong");
+            }
+
+            setTimeout(() => resolve(right), right ? 700 : 1900);
           },
         },
         [option],
