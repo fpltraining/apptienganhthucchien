@@ -10,9 +10,10 @@
  */
 
 import type { AccountId, DayRecord, StreakState, AccountProfile } from "./schema";
+import type { ReviewCard } from "../domain/srs";
 
 const DB_NAME = "tiengannh";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -34,6 +35,11 @@ function openDb(): Promise<IDBDatabase> {
       }
       if (!db.objectStoreNames.contains("profiles")) {
         db.createObjectStore("profiles", { keyPath: "accountId" });
+      }
+      // Recognition and production of the same phrase are separate cards with
+      // separate schedules, so direction is part of the key (§8.3).
+      if (!db.objectStoreNames.contains("cards")) {
+        db.createObjectStore("cards", { keyPath: ["accountId", "itemId", "direction"] });
       }
     };
 
@@ -60,7 +66,7 @@ function promisify<T>(request: IDBRequest<T>): Promise<T> {
 }
 
 async function withStore<T>(
-  store: "days" | "streaks" | "profiles",
+  store: "days" | "streaks" | "profiles" | "cards",
   mode: IDBTransactionMode,
   run: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
@@ -124,6 +130,29 @@ export async function getProfile(
 
 export async function putProfile(profile: AccountProfile): Promise<void> {
   await withStore("profiles", "readwrite", (store) => store.put(profile));
+}
+
+// --- vocabulary cards -------------------------------------------------------
+
+/** Every card for one account. The deck is small enough to hold in memory. */
+export async function getCards(accountId: AccountId): Promise<ReviewCard[]> {
+  const range = IDBKeyRange.bound([accountId], [accountId, [], []]);
+  return withStore("cards", "readonly", (store) => store.getAll(range));
+}
+
+export async function putCards(cards: readonly ReviewCard[]): Promise<void> {
+  if (cards.length === 0) return;
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("cards", "readwrite");
+    const store = tx.objectStore("cards");
+    // One transaction for the batch: a partial write would leave some cards
+    // rescheduled and others not, which is worse than none of them being.
+    for (const card of cards) store.put(card);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+  });
 }
 
 /** Test seam — drops the cached connection so a fresh `openDb` runs. */

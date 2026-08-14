@@ -8,14 +8,19 @@
 
 import type { AccountId, AccountProfile, SessionTier, StreakState } from "./schema";
 import {
+  getCards,
   getDay,
   getDaysBetween,
   getProfile,
   getStreak,
+  putCards,
   putDay,
   putProfile,
   putStreak,
 } from "./db";
+import { createCard } from "../domain/srs";
+import type { ReviewCard } from "../domain/srs";
+import { getWeek } from "../content";
 import { addDays, toDayKey } from "../domain/dates";
 import { createStreakState, recordSession, settle, weeklyProgress } from "../domain/streak";
 import type { StreakEvent } from "../domain/streak";
@@ -123,4 +128,39 @@ export async function completeSession(
 
 export async function saveProfile(profile: AccountProfile): Promise<void> {
   await putProfile(profile);
+}
+
+
+// --- vocabulary deck --------------------------------------------------------
+
+/**
+ * The account's deck, with cards created for any week-`week` phrase it does not
+ * have yet.
+ *
+ * Creating on read rather than up front means adding content to a week never
+ * requires a migration: the next session simply finds the new phrases and makes
+ * cards for them.
+ */
+export async function loadDeck(
+  accountId: AccountId,
+  week: number,
+  now = new Date(),
+): Promise<ReviewCard[]> {
+  const existing = await getCards(accountId);
+  const seen = new Set(existing.map((card) => `${card.itemId}:${card.direction}`));
+
+  const created: ReviewCard[] = [];
+  for (const item of getWeek(week).vocabulary) {
+    for (const direction of ["recognition", "production"] as const) {
+      if (seen.has(`${item.id}:${direction}`)) continue;
+      created.push(createCard(accountId, item.id, direction, now));
+    }
+  }
+
+  if (created.length > 0) await putCards(created);
+  return [...existing, ...created];
+}
+
+export async function saveCards(cards: readonly ReviewCard[]): Promise<void> {
+  await putCards(cards);
 }

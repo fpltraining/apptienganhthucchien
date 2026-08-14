@@ -13,13 +13,14 @@ import {
   recallAccount,
   rememberAccount,
 } from "./data/accounts";
-import { completeSession, loadAccount } from "./data/repository";
+import { loadAccount } from "./data/repository";
 import type { AccountId } from "./data/schema";
 import type { StreakEvent } from "./domain/streak";
 import { mount } from "./ui/dom";
 import { emptyEntries, renderAccountPicker } from "./ui/account-picker";
 import type { PickerEntry } from "./ui/account-picker";
 import { renderHome } from "./ui/home";
+import { runSession } from "./ui/session";
 
 const root = document.querySelector<HTMLElement>("#app");
 if (!root) throw new Error("#app is missing from index.html");
@@ -61,20 +62,28 @@ async function openAccount(id: AccountId, events: StreakEvent[] = []): Promise<v
         forgetAccount();
         void showPicker();
       },
-      onStartSession: () => void runSession(id),
+      onStartSession: () => void startLesson(id),
     }),
   );
 }
 
 /**
- * Placeholder for the 45-minute session (curriculum §5).
+ * Starts a lesson and returns to the home screen when it ends.
  *
- * Recording a full session here is what lets the streak engine be exercised
- * against real stored state while the four learning blocks are built.
+ * Which week to teach comes from the profile once the placement test exists;
+ * until then everyone starts at week 1, which is the correct starting point for
+ * the primary learner anyway (§4.4, track C notwithstanding).
  */
-async function runSession(id: AccountId): Promise<void> {
-  const { events } = await completeSession(id, "full", 45);
-  await openAccount(id, events);
+async function startLesson(id: AccountId): Promise<void> {
+  const { summary } = await loadAccount(id);
+
+  const outcome = await runSession(root!, id, {
+    week: 1,
+    audioRate: summary.profile.audioRate,
+    lastStudyDay: summary.streak.lastCountedDay,
+  });
+
+  await openAccount(id, outcome.events);
 }
 
 async function start(): Promise<void> {
