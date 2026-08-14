@@ -23,6 +23,7 @@ const EXECUTABLE_PATH = process.env.CHROMIUM_PATH;
 // because a second driver of the same flow drifts out of step with this one.
 const SHOTS_DIR = process.env.SMOKE_SHOTS;
 
+const shotsTaken = new Set();
 const failures = [];
 function check(label, actual, expected) {
   const ok = actual === expected;
@@ -33,6 +34,12 @@ function check(label, actual, expected) {
 function checkThat(label, condition, detail) {
   console.log(`${condition ? "ok  " : "FAIL"} ${label}${detail ? `: ${detail}` : ""}`);
   if (!condition) failures.push(label);
+}
+
+async function captureOnce(name) {
+  if (!SHOTS_DIR || shotsTaken.has(name)) return;
+  shotsTaken.add(name);
+  await page.screenshot({ path: `${SHOTS_DIR}/${name}.png` }).catch(() => undefined);
 }
 
 const browser = await chromium.launch(
@@ -54,6 +61,33 @@ await page.waitForSelector(".picker__tiles .tile");
 check("two accounts offered", await page.locator(".tile").count(), 2);
 
 await page.locator(".tile").first().click();
+
+// --- placement, shown once on a fresh account ---
+await page.waitForSelector(".block__title");
+check(
+  "placement offered first",
+  await page.locator(".block__title").first().textContent(),
+  "Nói chuyện với app 7 phút",
+);
+await captureOnce("nhap-hoc");
+
+await page.getByRole("button", { name: "Bắt đầu" }).click();
+let placementSteps = 0;
+while (placementSteps < 200) {
+  placementSteps++;
+  if (await page.getByText("App đã biết nên bắt đầu từ đâu").count()) break;
+  const action = page.locator(".btn:not(.btn--ghost):not([disabled])").first();
+  if ((await action.count()) === 0) {
+    await page.waitForTimeout(120);
+    continue;
+  }
+  await action.click({ timeout: 5000 }).catch(() => undefined);
+  await page.waitForTimeout(60);
+}
+checkThat("placement finished", placementSteps < 200, `${placementSteps} steps`);
+await captureOnce("ket-qua-nhap-hoc");
+
+await page.getByRole("button", { name: "Vào học" }).click();
 await page.waitForSelector(".home");
 check("opened account 1", await page.locator(".home__who").textContent(), "Tài khoản 1");
 
@@ -72,15 +106,8 @@ await page.getByRole("button", { name: "Bắt đầu" }).click();
  * the failure this catches, and it would catch it for a block added later too.
  */
 const blocksSeen = new Set();
-const shotsTaken = new Set();
 let steps = 0;
 const MAX_STEPS = 400;
-
-async function captureOnce(name) {
-  if (!SHOTS_DIR || shotsTaken.has(name)) return;
-  shotsTaken.add(name);
-  await page.screenshot({ path: `${SHOTS_DIR}/${name}.png` }).catch(() => undefined);
-}
 
 while (steps < MAX_STEPS) {
   steps++;
