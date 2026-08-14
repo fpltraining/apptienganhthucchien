@@ -6,6 +6,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["src/**/*.test.ts", "supabase/**/*.test.js"],
+    include: ["src/**/*.test.ts", "supabase/**/*.test.js", "server/**/*.test.js"],
   },
 });

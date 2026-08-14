@@ -10,7 +10,8 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "icons": "node scripts/gen-icons.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "server": "node server/index.mjs"
   },
   "repository": {
     "type": "git",
@@ -32,6 +33,7 @@
     "vitest": "^4.1.10"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.117.1",
     "ts-fsrs": "^5.4.1"
   },
   "private": true,

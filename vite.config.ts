@@ -44,5 +44,10 @@ export default defineConfig({
       devOptions: { enabled: true, type: "module" },
     }),
   ],
-  server: { host: true },
+  server: {
+    host: true,
+    // Same-origin in development, so the client never needs to know where the
+    // proxy lives or deal with CORS.
+    proxy: { "/api": { target: "http://localhost:8787", changeOrigin: true } },
+  },
 });
