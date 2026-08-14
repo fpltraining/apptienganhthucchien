@@ -31,6 +31,7 @@ import {
   speak,
   stopSpeaking,
 } from "../platform/speech";
+import { feedbackFor, scoreAttempt } from "../domain/pronunciation";
 import { createConversationProvider } from "../platform/conversation";
 import type { ConversationTurn } from "../platform/conversation";
 
@@ -41,6 +42,12 @@ export type BlockContext = {
   audioRate: number;
   /** False when the microphone was refused; blocks fall back to tapping. */
   micReady: boolean;
+  /**
+   * Called for every scored attempt, in any block, so the session can build the
+   * trouble-word list (§9.2). Attempts we could not score are not reported:
+   * silence is not evidence about a sound.
+   */
+  onAttemptScored?: (attempt: CapturedAttempt) => void;
 };
 
 /** Latency good enough to read as "it came out without translating first". */
@@ -60,6 +67,28 @@ function speedFeedback(spoken: boolean, latencyMs: number): string {
   if (latencyMs < FAST_MS) return "Chuẩn rồi — bật ra rất nhanh.";
   if (latencyMs < 4000) return "Được rồi. Lần sau thử nói nhanh hơn một chút.";
   return "Hơi chậm. Nghe lại rồi nói theo nhé.";
+}
+
+/**
+ * One line of feedback covering both halves of an attempt (§9.3).
+ *
+ * Pronunciation leads when we have it, because "which words did not come out"
+ * is more useful to act on than "that took four seconds". Speed is the fallback
+ * for attempts we could only time. Still no numbers in phase 1.
+ */
+function attemptFeedback(attempt: CapturedAttempt): string {
+  if (!attempt.spoken) return "Chưa nghe thấy — không sao, mai nói lại nhé.";
+  if (attempt.pronunciationScore === null) {
+    return speedFeedback(attempt.spoken, attempt.latencyMs);
+  }
+
+  const words = feedbackFor(attempt.pronunciationScore);
+  if (attempt.missed.length > 0 && attempt.pronunciationScore < 85) {
+    // Only the first two: a list of every word that slipped reads as a telling
+    // off, and two is enough to practise.
+    return `${words} Chú ý: ${attempt.missed.slice(0, 2).join(", ")}`;
+  }
+  return words;
 }
 
 function wait(ms: number): Promise<void> {
@@ -124,22 +153,20 @@ export async function runVocabularyBlock(
     // there is nothing left to produce.
     if (!isProduction) await speak(item.phrase, { rate: context.audioRate });
 
-    const attempt = await captureAttempt(context, feedback);
+    const attempt = await captureAttempt(context, feedback, item.phrase);
     attempted++;
     latencies.push(attempt.latencyMs);
 
     const graded = reviewCard(card, {
       spoken: attempt.spoken,
       latencyMs: attempt.latencyMs,
-      // No pronunciation scorer yet: server-side scoring is decision #4 and the
-      // backend does not exist, so grading runs on latency alone (§12.7).
-      pronunciationScore: null,
+      pronunciationScore: attempt.pronunciationScore,
     });
     if (attempt.spoken) correct++;
     options.onCardReviewed(graded.card);
 
     answer.textContent = item.meaningVi;
-    feedback.textContent = speedFeedback(attempt.spoken, attempt.latencyMs);
+    feedback.textContent = attemptFeedback(attempt);
     // Always let them hear the model pronunciation after trying, which is the
     // "nghe lại giọng mẫu" habit §9.3 relies on.
     await speak(item.phrase, { rate: context.audioRate });
@@ -156,20 +183,65 @@ export async function runVocabularyBlock(
   };
 }
 
+export type CapturedAttempt = {
+  spoken: boolean;
+  latencyMs: number;
+  /** 0–100, or null when nothing was heard well enough to score (§9). */
+  pronunciationScore: number | null;
+  /** Target words that did not come through, for the trouble-word list. */
+  missed: string[];
+};
+
 /**
  * Waits for the learner to speak, or for them to say they did.
  *
- * The tap fallback is a worse measurement and is treated as one: it records a
- * neutral latency rather than timing the tap, because timing how fast someone
- * finds a button after speaking would poison the headline metric of §3.
+ * Given a `target` phrase and a working recogniser, this listens for the words
+ * and scores them; otherwise it falls back to timing the onset of speech alone.
+ * Both paths are real attempts — an unscored one grades on latency and is
+ * capped at Good by `gradeAttempt`, which is the honest ceiling for speech we
+ * did not hear.
+ *
+ * The tap fallback is a worse measurement again and is treated as one: it
+ * records a neutral latency rather than timing the tap, because timing how fast
+ * someone finds a button after speaking would poison the headline metric of §3.
  */
 async function captureAttempt(
   context: BlockContext,
   feedback: HTMLElement,
-): Promise<{ spoken: boolean; latencyMs: number }> {
+  target?: string,
+): Promise<CapturedAttempt> {
+  if (context.micReady && target && recognitionSupported()) {
+    const heard = await recognizeSpeech();
+    // A null answer means the recogniser is unavailable, so onset timing below
+    // is still worth a try. A result with no words means the learner was
+    // silent — asking them to wait through a second eight-second listen would
+    // only make a missed card take twice as long.
+    if (heard) {
+      const scored = heard.transcript ? scoreAttempt(target, heard.transcript) : null;
+      const usable = scored !== null && scored.confidence === "normal";
+      const attempt: CapturedAttempt = {
+        spoken: heard.transcript.length > 0,
+        latencyMs: heard.latencyMs,
+        // A low-confidence reading is left unscored rather than counted: one or
+        // two words back from the recogniser is not evidence about a phrase.
+        pronunciationScore: usable ? scored.score : null,
+        missed: usable ? scored.missed : [],
+      };
+      if (usable) context.onAttemptScored?.(attempt);
+      return attempt;
+    }
+  }
+
   if (context.micReady) {
     const heard = await listenForSpeechOnset();
-    if (!heard.degraded) return { spoken: heard.spoken, latencyMs: heard.latencyMs };
+    if (!heard.degraded) {
+      return {
+        spoken: heard.spoken,
+        latencyMs: heard.latencyMs,
+        pronunciationScore: null,
+        missed: [],
+      };
+    }
   }
 
   return new Promise((resolve) => {
@@ -178,7 +250,8 @@ async function captureAttempt(
       {
         class: "btn",
         type: "button",
-        onclick: () => resolve({ spoken: true, latencyMs: 2500 }),
+        onclick: () =>
+          resolve({ spoken: true, latencyMs: 2500, pronunciationScore: null, missed: [] }),
       },
       ["Tôi nói được"],
     );
@@ -187,7 +260,13 @@ async function captureAttempt(
       {
         class: "btn btn--ghost",
         type: "button",
-        onclick: () => resolve({ spoken: false, latencyMs: RESPONSE_DEADLINE_MS }),
+        onclick: () =>
+          resolve({
+            spoken: false,
+            latencyMs: RESPONSE_DEADLINE_MS,
+            pronunciationScore: null,
+            missed: [],
+          }),
       },
       ["Chưa nói được"],
     );
@@ -378,12 +457,12 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
     );
 
     await speak(line.text, { rate: context.audioRate });
-    const attempt = await captureAttempt(context, feedback);
+    const attempt = await captureAttempt(context, feedback, line.text);
     attempted++;
     latencies.push(attempt.latencyMs);
     if (attempt.spoken) correct++;
 
-    feedback.textContent = speedFeedback(attempt.spoken, attempt.latencyMs);
+    feedback.textContent = attemptFeedback(attempt);
     await wait(500);
   }
 
@@ -535,7 +614,7 @@ export async function runReviewBlock(
       ]),
     );
 
-    const attempt = await captureAttempt(context, feedback);
+    const attempt = await captureAttempt(context, feedback, item.phrase);
     attempted++;
     latencies.push(attempt.latencyMs);
     if (attempt.spoken) correct++;

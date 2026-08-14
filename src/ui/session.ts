@@ -33,6 +33,8 @@ import {
   runVocabularyBlock,
 } from "./blocks";
 import type { BlockContext } from "./blocks";
+import { troubleWords } from "../domain/pronunciation";
+import type { PronunciationScore } from "../domain/pronunciation";
 
 export type SessionOutcome = {
   /** False when the learner left before finishing a single block. */
@@ -81,6 +83,7 @@ function renderSummary(
   results: readonly BlockResult[],
   minutes: number,
   onDone: () => void,
+  trouble: readonly string[] = [],
 ): void {
   const spoken = results.reduce((total, result) => total + result.itemsAttempted, 0);
   const latencies = results
@@ -109,6 +112,17 @@ function renderSummary(
               "Đây là thứ tiến bộ rõ nhất trong 6 tháng tới.",
             ]),
           ]),
+      // Only shown when a word went missing repeatedly today. A list after
+      // every session would read as a daily report card, which §9.3 rules out.
+      trouble.length === 0
+        ? null
+        : el("section", { class: "panel" }, [
+            el("p", { class: "panel__label" }, ["Mai để ý mấy từ này"]),
+            el("p", { class: "panel__stat" }, [trouble.slice(0, 3).join(" · ")]),
+            el("p", { class: "panel__note" }, [
+              "Nghe lại giọng mẫu rồi nói theo vài lần là được.",
+            ]),
+          ]),
       el("button", { class: "btn", type: "button", onclick: onDone }, ["Về trang chính"]),
     ]),
   );
@@ -135,11 +149,24 @@ export async function runSession(
   if (!started) return { recorded: false, events: [] };
 
   const micReady = await primeMicrophone();
+
+  // Collected across all four blocks, so a word has to keep going missing in
+  // different exercises before it is called out (§9.2).
+  const scored: PronunciationScore[] = [];
+
   const context: BlockContext = {
     root,
     week,
     audioRate: options.audioRate,
     micReady,
+    onAttemptScored: (attempt) => {
+      if (attempt.pronunciationScore === null) return;
+      scored.push({
+        score: attempt.pronunciationScore,
+        missed: attempt.missed,
+        confidence: "normal",
+      });
+    },
   };
 
   let deck = await loadDeck(accountId, options.week);
@@ -209,7 +236,7 @@ export async function runSession(
   const { events } = await completeSession(accountId, tierFor(state), minutes);
 
   await new Promise<void>((resolve) => {
-    renderSummary(root, state.results, minutes, resolve);
+    renderSummary(root, state.results, minutes, resolve, troubleWords(scored));
   });
 
   return { recorded: true, events };
