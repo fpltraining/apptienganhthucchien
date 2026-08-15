@@ -44,11 +44,17 @@ import {
 } from "./blocks";
 import type { BlockContext } from "./blocks";
 import type { PronunciationScore } from "../domain/pronunciation";
+import type { CheckpointKind } from "../domain/checkpoint";
 
 export type SessionOutcome = {
   /** False when the learner left before finishing a single block. */
   recorded: boolean;
   events: StreakEvent[];
+  /** Set when this session closed a phase and a checkpoint is now owed (§6). */
+  checkpointDue: CheckpointKind | null;
+  /** The context the checkpoint should run in, so the test reuses this
+   * session's microphone grant rather than asking for it again. */
+  context: BlockContext | null;
 };
 
 /**
@@ -165,7 +171,7 @@ export async function runSession(
       () => resolve(false),
     );
   });
-  if (!started) return { recorded: false, events: [] };
+  if (!started) return { recorded: false, events: [], checkpointDue: null, context: null };
 
   const micReady = await primeMicrophone();
 
@@ -253,10 +259,16 @@ export async function runSession(
     await saveCards([...touched.values()]);
   }
 
-  if (!isRecordable(state)) return { recorded: false, events: [] };
+  if (!isRecordable(state)) {
+    return { recorded: false, events: [], checkpointDue: null, context: null };
+  }
 
   const minutes = activeMinutes(state);
-  const { events, advancedToWeek } = await completeSession(accountId, tierFor(state), minutes);
+  const { events, advancedToWeek, checkpointDue } = await completeSession(
+    accountId,
+    tierFor(state),
+    minutes,
+  );
 
   // The durable list, not just today's: a word missed once is a bad take, a
   // word missed across weeks is the thing to practise (§9.2).
@@ -269,5 +281,5 @@ export async function runSession(
     renderSummary(root, state.results, minutes, resolve, practise, advancedToWeek);
   });
 
-  return { recorded: true, events };
+  return { recorded: true, events, checkpointDue, context };
 }

@@ -13,7 +13,7 @@ import {
   recallAccount,
   rememberAccount,
 } from "./data/accounts";
-import { loadAccount, saveProfile } from "./data/repository";
+import { loadAccount, saveProfile, settleCheckpoint } from "./data/repository";
 import type { AccountId } from "./data/schema";
 import type { StreakEvent } from "./domain/streak";
 import { mount } from "./ui/dom";
@@ -21,6 +21,7 @@ import { emptyEntries, renderAccountPicker } from "./ui/account-picker";
 import type { PickerEntry } from "./ui/account-picker";
 import { renderHome } from "./ui/home";
 import { runSession } from "./ui/session";
+import { runCheckpoint } from "./ui/checkpoint";
 import { renderPlacementOutcome, runPlacement } from "./ui/placement";
 import { primeMicrophone } from "./platform/speech";
 
@@ -102,6 +103,14 @@ async function startLesson(id: AccountId): Promise<void> {
     audioRate: summary.profile.audioRate,
     lastStudyDay: summary.streak.lastCountedDay,
   });
+
+  // The checkpoint runs straight after the session that earned it, while the
+  // microphone grant and the learner's attention are both still here. Asking
+  // them to come back for it later is how a gate quietly stops happening.
+  if (outcome.checkpointDue && outcome.context) {
+    const result = await runCheckpoint(outcome.context, outcome.checkpointDue);
+    await settleCheckpoint(id, result.passed, result.extraWeeks);
+  }
 
   await openAccount(id, outcome.events);
 }

@@ -60,7 +60,7 @@ export type BlockContext = {
 /** Latency good enough to read as "it came out without translating first". */
 const FAST_MS = 1500;
 
-function header(title: string, subtitle: string, progress: string): HTMLElement {
+export function header(title: string, subtitle: string, progress: string): HTMLElement {
   return el("div", { class: "block__head" }, [
     el("p", { class: "block__step" }, [progress]),
     el("h1", { class: "block__title" }, [title]),
@@ -275,7 +275,11 @@ export type CapturedAttempt = {
  * records a neutral latency rather than timing the tap, because timing how fast
  * someone finds a button after speaking would poison the headline metric of §3.
  */
-async function captureAttempt(
+/**
+ * Exported for the checkpoint screens (§6), which run the same drills against
+ * material drawn across a whole phase rather than one week's.
+ */
+export async function captureAttempt(
   context: BlockContext,
   feedback: HTMLElement,
   target?: string,
@@ -446,7 +450,8 @@ async function renderListeningStage(
   });
 }
 
-function askChoice(
+/** Exported for the checkpoint screens; see `captureAttempt`. */
+export function askChoice(
   context: BlockContext,
   promptText: string,
   options: readonly string[],
@@ -492,7 +497,7 @@ function askChoice(
 }
 
 /** Puts the answer among distractors drawn from the passage's other gaps. */
-function shuffleWithAnswer(
+export function shuffleWithAnswer(
   answer: string,
   pool: readonly string[],
 ): { options: string[]; answerIndex: number } {
@@ -580,7 +585,8 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
   };
 }
 
-async function runRoleplayTurn(
+/** Exported for the checkpoint screens (§6). */
+export async function runRoleplayTurn(
   context: BlockContext,
   turn: RoleplayTurn,
   index: number,
