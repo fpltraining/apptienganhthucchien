@@ -202,7 +202,11 @@ export async function runCheckpoint(
     mount(
       context.root,
       el("section", { class: "block" }, [
-        el("h1", { class: "block__title" }, ["Xong rồi"]),
+        el("h1", { class: "block__title" }, [
+          // Finishing the whole course is the one moment this app is allowed to
+          // make a fuss about.
+          kind === "C" && verdict.passed ? "Bác học xong rồi" : "Xong rồi",
+        ]),
         ...verdict.linesVi.map((line) => el("p", { class: "block__lead" }, [line])),
         el("p", { class: "block__note" }, [outcomeMessageVi(spec, verdict)]),
         el("button", { class: "btn", type: "button", onclick: () => resolve() }, ["Tiếp"]),

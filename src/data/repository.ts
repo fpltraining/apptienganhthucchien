@@ -8,6 +8,7 @@
 
 import type { AccountId, AccountProfile, SessionTier, StreakState } from "./schema";
 import {
+  getAllDays,
   getCards,
   getDay,
   getDaysBetween,
@@ -28,6 +29,8 @@ import { createStreakState, recordSession, settle, weeklyProgress } from "../dom
 import { recordSessionForWeek } from "../domain/progression";
 import { mergeTroubleWords, soundsToPractise } from "../domain/pronunciation";
 import type { CheckpointKind } from "../domain/checkpoint";
+import { buildReport } from "../domain/maintenance";
+import type { CourseReport } from "../domain/maintenance";
 import type { StreakEvent } from "../domain/streak";
 
 export type AccountSummary = {
@@ -272,6 +275,32 @@ export async function settleCheckpoint(
     // Restarting the week count matters on a fail: dropping back two weeks with
     // four of five sessions already banked would skip straight past them again.
     sessionsThisWeek: passed ? profile.sessionsThisWeek ?? 0 : 0,
+  });
+}
+
+/**
+ * The closing report (§7).
+ *
+ * Read at graduation rather than accumulated as the course runs: every number
+ * in it is already recorded somewhere, and a second running total would be one
+ * more thing that could disagree with the truth.
+ */
+export async function buildCourseReport(accountId: AccountId): Promise<CourseReport> {
+  const [days, streak, cards, sounds] = await Promise.all([
+    getAllDays(accountId),
+    getStreak(accountId),
+    getCards(accountId),
+    loadTroubleWords(accountId),
+  ]);
+
+  return buildReport({
+    daysStudied: days.length,
+    longestStreak: streak?.best ?? 0,
+    // Cards that have been through a review, rather than every card seen once:
+    // "in long-term memory" has to mean something the learner would recognise
+    // as true.
+    cardsInReview: cards.filter((card) => card.fsrs.reps > 0).length,
+    soundsStillTroubled: sounds,
   });
 }
 

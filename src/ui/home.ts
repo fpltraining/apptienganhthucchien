@@ -29,6 +29,8 @@ export type HomeActions = {
   onStartSession: () => void;
   /** Opens the backup screen (§16.3). */
   onBackup: () => void;
+  /** Reopens the closing report; only offered after the course is done. */
+  onShowReport: () => void;
 };
 
 /**
@@ -179,6 +181,13 @@ export function renderHome(
     el("button", { class: "btn", type: "button", onclick: actions.onStartSession }, [
       studiedToday ? "Học thêm một buổi" : "Bắt đầu",
     ]),
+
+    // Only once there is a course to look back on.
+    profile.graduatedOn
+      ? el("button", { class: "linkish home__backup", type: "button", onclick: actions.onShowReport }, [
+          "Xem tổng kết khoá học",
+        ])
+      : null,
 
     // Below the main button and quiet: backing up is housekeeping, and putting
     // it anywhere prominent would compete with the one thing this screen exists

@@ -13,7 +13,12 @@ import {
   recallAccount,
   rememberAccount,
 } from "./data/accounts";
-import { loadAccount, saveProfile, settleCheckpoint } from "./data/repository";
+import {
+  buildCourseReport,
+  loadAccount,
+  saveProfile,
+  settleCheckpoint,
+} from "./data/repository";
 import type { AccountId } from "./data/schema";
 import type { StreakEvent } from "./domain/streak";
 import { mount } from "./ui/dom";
@@ -23,6 +28,7 @@ import { renderHome } from "./ui/home";
 import { runSession } from "./ui/session";
 import { runCheckpoint } from "./ui/checkpoint";
 import { runBackupScreen } from "./ui/backup";
+import { renderReport } from "./ui/report";
 import { renderPlacementOutcome, runPlacement } from "./ui/placement";
 import { primeMicrophone } from "./platform/speech";
 
@@ -92,11 +98,19 @@ async function openAccount(id: AccountId, events: StreakEvent[] = []): Promise<v
       },
       onStartSession: () => void startLesson(id),
       onBackup: () => void showBackup(id),
+      onShowReport: () => void showReport(id),
     }),
   );
 }
 
 /** Shows the backup screen, then returns to where the learner was. */
+/** Reopens the closing report for a learner who has finished (§7). */
+async function showReport(id: AccountId): Promise<void> {
+  const report = await buildCourseReport(id);
+  await new Promise<void>((resolve) => renderReport(root!, report, resolve));
+  await openAccount(id);
+}
+
 async function showBackup(id: AccountId): Promise<void> {
   await runBackupScreen(root!);
   await openAccount(id);
@@ -117,8 +131,16 @@ async function startLesson(id: AccountId): Promise<void> {
   // microphone grant and the learner's attention are both still here. Asking
   // them to come back for it later is how a gate quietly stops happening.
   if (outcome.checkpointDue && outcome.context) {
-    const result = await runCheckpoint(outcome.context, outcome.checkpointDue);
+    const kind = outcome.checkpointDue;
+    const result = await runCheckpoint(outcome.context, kind);
     await settleCheckpoint(id, result.passed, result.extraWeeks);
+
+    // Shown once, straight after the test that earned it. Waiting for the
+    // learner to go looking for it would waste the one moment it lands.
+    if (kind === "C" && result.passed) {
+      const report = await buildCourseReport(id);
+      await new Promise<void>((resolve) => renderReport(root!, report, resolve));
+    }
   }
 
   await openAccount(id, outcome.events);

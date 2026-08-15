@@ -26,10 +26,8 @@ export type Graduation = {
 export type CourseReport = {
   daysStudied: number;
   longestStreak: number;
-  /** Phrases the learner has in review, i.e. met and kept. */
+  /** Phrases in review, i.e. met and kept. */
   phrasesLearned: number;
-  /** Sounds that were a problem and no longer are. */
-  soundsFixed: number;
   /** Sounds still worth working on — named, because the report is a starting
    * point rather than a trophy. */
   soundsRemaining: string[];
@@ -41,36 +39,33 @@ export type CourseReport = {
  * Counts what was done, not what was missed. A learner who studied 140 of 182
  * days did 140 days of English; presenting that as 77% turns an achievement
  * into a shortfall, which is the exact framing §15 warns kills the habit.
+ *
+ * Deliberately does not claim how many sounds were fixed. Trouble words age out
+ * of storage once they stop being missed, so nothing here knows how many there
+ * ever were — and a number invented for a graduation screen is the same
+ * mis-scoring §15 puts at the top of the risk list, just dressed as praise.
  */
 export function buildReport(input: {
   daysStudied: number;
   longestStreak: number;
   cardsInReview: number;
-  soundsEverTroubled: number;
   soundsStillTroubled: readonly string[];
 }): CourseReport {
   return {
     daysStudied: input.daysStudied,
     longestStreak: input.longestStreak,
     phrasesLearned: input.cardsInReview,
-    soundsFixed: Math.max(0, input.soundsEverTroubled - input.soundsStillTroubled.length),
     soundsRemaining: [...input.soundsStillTroubled],
   };
 }
 
 /** Vietnamese lines for the report screen, in the order they should be read. */
 export function reportLinesVi(report: CourseReport): string[] {
-  const lines = [
+  return [
     `Bác đã học ${report.daysStudied} ngày.`,
     `Chuỗi dài nhất: ${report.longestStreak} ngày liền.`,
     `${report.phrasesLearned} câu đang nằm trong trí nhớ dài hạn.`,
   ];
-
-  if (report.soundsFixed > 0) {
-    lines.push(`${report.soundsFixed} âm trước đây hay sai, giờ nói được.`);
-  }
-
-  return lines;
 }
 
 /**

@@ -125,6 +125,12 @@ export async function getDaysBetween(
 
 // --- streaks ----------------------------------------------------------------
 
+/** Every day this account has studied, for the closing report (§7). */
+export async function getAllDays(accountId: AccountId): Promise<DayRecord[]> {
+  const range = IDBKeyRange.bound([accountId], [accountId, []]);
+  return withStore("days", "readonly", (store) => store.getAll(range));
+}
+
 export async function getStreak(accountId: AccountId): Promise<StreakState | undefined> {
   return withStore("streaks", "readonly", (store) => store.get(accountId));
 }

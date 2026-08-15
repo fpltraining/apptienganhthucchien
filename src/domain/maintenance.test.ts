@@ -12,7 +12,6 @@ const input = {
   daysStudied: 140,
   longestStreak: 31,
   cardsInReview: 620,
-  soundsEverTroubled: 9,
   soundsStillTroubled: ["three"],
 };
 
@@ -23,14 +22,11 @@ describe("buildReport", () => {
     expect(report.phrasesLearned).toBe(620);
   });
 
-  it("works out which sounds stopped being a problem", () => {
-    expect(buildReport(input).soundsFixed).toBe(8);
-  });
-
-  it("never reports a negative count when more sounds are troubled than were", () => {
-    // Can happen if new words started failing late in the course.
-    const report = buildReport({ ...input, soundsEverTroubled: 1, soundsStillTroubled: ["a", "b"] });
-    expect(report.soundsFixed).toBe(0);
+  it("does not claim how many sounds were fixed", () => {
+    // Trouble words age out of storage, so nothing knows how many there ever
+    // were. A number invented for a graduation screen is the mis-scoring §15
+    // puts at the top of the risk list, dressed as praise.
+    expect(buildReport(input)).not.toHaveProperty("soundsFixed");
   });
 
   it("still names what is left, so the report is a starting point", () => {
@@ -50,9 +46,9 @@ describe("reportLinesVi", () => {
     }
   });
 
-  it("leaves out the fixed-sounds line when there is nothing to say", () => {
-    const lines = reportLinesVi(buildReport({ ...input, soundsEverTroubled: 0 }));
-    expect(lines.some((line) => line.includes("âm"))).toBe(false);
+  it("reports only things it can actually count", () => {
+    const lines = reportLinesVi(buildReport(input));
+    expect(lines).toHaveLength(3);
   });
 });
 
