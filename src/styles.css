@@ -186,6 +186,16 @@ button {
   padding: 1.25rem;
 }
 
+/* Finishing a week is the one milestone worth marking on the summary screen. */
+.panel--good {
+  border-color: var(--flame);
+  border-width: 2px;
+}
+
+.panel--good .panel__stat {
+  color: var(--flame);
+}
+
 .panel__label {
   margin: 0 0 0.25rem;
   color: var(--ink-soft);

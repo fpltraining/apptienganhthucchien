@@ -89,6 +89,7 @@ function renderSummary(
   minutes: number,
   onDone: () => void,
   trouble: readonly string[] = [],
+  advancedToWeek: number | null = null,
 ): void {
   const spoken = results.reduce((total, result) => total + result.itemsAttempted, 0);
   const latencies = results
@@ -127,6 +128,15 @@ function renderSummary(
             el("p", { class: "panel__note" }, [
               "Nghe lại giọng mẫu rồi nói theo vài lần là được.",
             ]),
+          ]),
+      // The moment a week's five sessions are done. Worth its own panel: this
+      // is the only place the learner sees the course actually moving.
+      advancedToWeek === null
+        ? null
+        : el("section", { class: "panel panel--good" }, [
+            el("p", { class: "panel__label" }, ["Xong một tuần!"]),
+            el("p", { class: "panel__stat" }, [`Mai bắt đầu tuần ${advancedToWeek}`]),
+            el("p", { class: "panel__note" }, [getWeek(advancedToWeek).titleVi]),
           ]),
       el("button", { class: "btn", type: "button", onclick: onDone }, ["Về trang chính"]),
     ]),
@@ -242,10 +252,10 @@ export async function runSession(
   if (!isRecordable(state)) return { recorded: false, events: [] };
 
   const minutes = activeMinutes(state);
-  const { events } = await completeSession(accountId, tierFor(state), minutes);
+  const { events, advancedToWeek } = await completeSession(accountId, tierFor(state), minutes);
 
   await new Promise<void>((resolve) => {
-    renderSummary(root, state.results, minutes, resolve, troubleWords(scored));
+    renderSummary(root, state.results, minutes, resolve, troubleWords(scored), advancedToWeek);
   });
 
   return { recorded: true, events };

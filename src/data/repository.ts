@@ -23,6 +23,7 @@ import type { ReviewCard } from "../domain/srs";
 import { getWeek } from "../content";
 import { addDays, toDayKey } from "../domain/dates";
 import { createStreakState, recordSession, settle, weeklyProgress } from "../domain/streak";
+import { recordSessionForWeek } from "../domain/progression";
 import type { StreakEvent } from "../domain/streak";
 
 export type AccountSummary = {
@@ -41,6 +42,7 @@ function createProfile(accountId: AccountId): AccountProfile {
     listeningTrack: null,
     placementScore: null,
     currentWeek: 1,
+    sessionsThisWeek: 0,
     startedOn: null,
     // 0.85x is the listening speed phase 1 starts at (curriculum §5.2).
     audioRate: 0.85,
@@ -105,7 +107,7 @@ export async function completeSession(
   tier: SessionTier,
   minutes: number,
   now = new Date(),
-): Promise<{ streak: StreakState; events: StreakEvent[] }> {
+): Promise<{ streak: StreakState; events: StreakEvent[]; advancedToWeek: number | null }> {
   const today = toDayKey(now);
   const existing = await getDay(accountId, today);
 
@@ -125,7 +127,27 @@ export async function completeSession(
   const { state, events } = recordSession(current, today, tier);
   await putStreak(state);
 
-  return { streak: state, events };
+  // Week progression rides on the same idempotency as the streak: coming back
+  // later the same day to upgrade a short session is one session's progress.
+  const profile = (await getProfile(accountId)) ?? createProfile(accountId);
+  const advance = recordSessionForWeek(
+    {
+      currentWeek: profile.currentWeek,
+      sessionsThisWeek: profile.sessionsThisWeek ?? 0,
+    },
+    { alreadyStudiedToday: existing !== undefined },
+  );
+  await putProfile({
+    ...profile,
+    currentWeek: advance.currentWeek,
+    sessionsThisWeek: advance.sessionsThisWeek,
+  });
+
+  return {
+    streak: state,
+    events,
+    advancedToWeek: advance.advanced ? advance.currentWeek : null,
+  };
 }
 
 export async function saveProfile(profile: AccountProfile): Promise<void> {

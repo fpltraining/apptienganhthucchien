@@ -73,6 +73,13 @@ export type AccountProfile = {
   placementScore: number | null;
   /** Where in the 26 weeks this learner is: from placement, then progress. */
   currentWeek: number;
+  /**
+   * Sessions completed toward the current week; five opens the next one
+   * (§10.4). Optional because profiles stored before week progression existed
+   * do not have it — those learners start the count from zero rather than
+   * needing a migration.
+   */
+  sessionsThisWeek?: number;
   /** Set once the learner finishes onboarding. */
   startedOn: string | null;
   /** Playback rate for listening drills; raised as the ear improves. */

@@ -85,3 +85,42 @@ describe("completeSession", () => {
     expect(summary.week).toEqual({ done: 2, goal: 5, met: false });
   });
 });
+
+describe("week progression", () => {
+  const day = (offset: number) => new Date(2026, 2, 2 + offset);
+
+  it("opens the next week after five sessions", async () => {
+    for (let session = 0; session < 4; session++) {
+      const result = await completeSession("acc1", "full", 45, day(session));
+      expect(result.advancedToWeek).toBeNull();
+    }
+
+    const fifth = await completeSession("acc1", "full", 45, day(4));
+    expect(fifth.advancedToWeek).toBe(2);
+
+    const { summary } = await loadAccount("acc1", day(4));
+    expect(summary.profile.currentWeek).toBe(2);
+    expect(summary.profile.sessionsThisWeek).toBe(0);
+  });
+
+  it("counts a second session on the same day only once", async () => {
+    // §10.2 lets a short session be upgraded to a full one later the same day.
+    await completeSession("acc1", "short", 20, day(0));
+    await completeSession("acc1", "full", 45, day(0));
+
+    const { summary } = await loadAccount("acc1", day(0));
+    expect(summary.profile.sessionsThisWeek).toBe(1);
+  });
+
+  it("moves the two accounts independently", async () => {
+    // §13.1 again: finishing a week on one account must not move the other.
+    for (let session = 0; session < 5; session++) {
+      await completeSession("acc2", "full", 45, day(session));
+    }
+
+    const mine = await loadAccount("acc2", day(4));
+    const theirs = await loadAccount("acc1", day(4));
+    expect(mine.summary.profile.currentWeek).toBe(2);
+    expect(theirs.summary.profile.currentWeek).toBe(1);
+  });
+});
