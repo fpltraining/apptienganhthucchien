@@ -26,14 +26,14 @@ const weeks: WeekContent[] = availableWeeks().map((week) => getWeek(week));
 describe("the library", () => {
   it("covers every written week without gaps", () => {
     expect(availableWeeks()).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
     ]);
   });
 
   it("hands a learner past the end the last week, not the first", () => {
     // Placement track D starts at week 9 (§4.4); once content runs out again
     // the learner repeats the last week rather than restarting at greetings.
-    expect(getWeek(26).week).toBe(22);
+    expect(getWeek(26).week).toBe(24);
   });
 
   it("takes the scaffolding away on the curriculum's schedule", () => {
@@ -44,23 +44,34 @@ describe("the library", () => {
     for (const week of [12, 13, 14]) {
       expect(getWeek(week).roleplay.hintLevel).toBe("keyword");
     }
-    for (const week of [15, 16, 17, 18, 19, 20, 21, 22]) {
+    for (const week of [15, 16, 17, 18, 19, 20, 21, 22, 23, 24]) {
       expect(getWeek(week).roleplay.hintLevel).toBe("none");
     }
   });
 
-  it("tightens the response clock across phase 3 (§giai đoạn 3)", () => {
-    // 8s → 6s, on its way to 3s by week 23. Never looser than the week before.
+  it("tightens the response clock down to week 23 (§giai đoạn 3)", () => {
+    // 8s → 6s → 5s → 3s. The clock measures how fast a phrase comes out, and
+    // week 23 - the emergency call - is where that matters most.
     expect(getWeek(18).responseDeadlineMs).toBe(8000);
     expect(getWeek(19).responseDeadlineMs).toBe(6000);
     expect(getWeek(20).responseDeadlineMs).toBe(6000);
+    expect(getWeek(21).responseDeadlineMs).toBe(5000);
+    expect(getWeek(23).responseDeadlineMs).toBe(3000);
 
-    let previous = Number.POSITIVE_INFINITY;
-    for (const week of weeks) {
+    for (const week of weeks.filter((candidate) => candidate.week <= 23)) {
       const deadline = week.responseDeadlineMs ?? 8000;
-      expect(deadline, `week ${week.week} loosens the clock`).toBeLessThanOrEqual(previous);
-      previous = deadline;
+      expect(deadline, `week ${week.week} is looser than the schedule`).toBeLessThanOrEqual(
+        8000,
+      );
     }
+  });
+
+  it("gives the storytelling weeks room to breathe", () => {
+    // Week 24 goes back up to 5s on purpose. Three seconds is right for "she's
+    // not breathing"; asking someone to open a two-minute story in three
+    // seconds only produces clipped sentences, which is the opposite of what
+    // that week trains.
+    expect(getWeek(24).responseDeadlineMs).toBe(5000);
   });
 
   it("gives every card a unique id", () => {
