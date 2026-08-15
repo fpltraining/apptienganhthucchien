@@ -20,8 +20,8 @@
 import type { BlockResult } from "../domain/session";
 import type { ReviewCard } from "../domain/srs";
 import { buildDailyQueue, reviewCard } from "../domain/srs";
-import type { WeekContent } from "../content/types";
-import { advanceRoleplay, findVocabItem, getTurn, hintsToShow } from "../content";
+import type { ShadowingLine, WeekContent } from "../content/types";
+import { advanceRoleplay, findVocabItem, getTurn, getWeek, hintsToShow } from "../content";
 import type { RoleplayProgress, RoleplayTurn } from "../content";
 import { el } from "./dom";
 import {
@@ -31,9 +31,18 @@ import {
   speak,
   stopSpeaking,
 } from "../platform/speech";
-import { feedbackFor, scoreAttempt } from "../domain/pronunciation";
+import { feedbackFor, pickRemedialLines, scoreAttempt } from "../domain/pronunciation";
 import { createConversationProvider } from "../platform/conversation";
 import type { ConversationTurn } from "../platform/conversation";
+
+/** Shadowing lines from every week before this one, for remedial practice. */
+function remedialPool(week: number): ShadowingLine[] {
+  const pool: ShadowingLine[] = [];
+  for (let earlier = 1; earlier < week; earlier++) {
+    pool.push(...(getWeek(earlier)?.shadowing ?? []));
+  }
+  return pool;
+}
 
 export type BlockContext = {
   root: HTMLElement;
@@ -55,6 +64,11 @@ export type BlockContext = {
    * silence is not evidence about a sound.
    */
   onAttemptScored?: (attempt: CapturedAttempt) => void;
+  /**
+   * Sounds this learner keeps missing across sessions (§9.2). The shadowing
+   * drill adds lines that exercise them.
+   */
+  troubleWords?: readonly string[];
 };
 
 /** Latency good enough to read as "it came out without translating first". */
@@ -526,8 +540,17 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
   let correct = 0;
 
   // --- shadowing ---
-  for (let index = 0; index < context.week.shadowing.length; index++) {
-    const line = context.week.shadowing[index]!;
+  // The week's own lines first, then up to two drawn from earlier weeks that
+  // happen to drill the sounds this learner keeps missing (§9.2). Appended
+  // rather than substituted: this week's focus is the lesson, and a learner
+  // with three stubborn words must still get through the course's sounds.
+  const lines = [
+    ...context.week.shadowing,
+    ...pickRemedialLines(context.troubleWords ?? [], remedialPool(context.week.week)),
+  ];
+
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index]!;
     const feedback = el("p", { class: "feedback" }, [""]);
 
     context.root.replaceChildren(
@@ -535,7 +558,7 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
         header(
           "Nói theo",
           line.focusVi,
-          `Mở miệng · ${index + 1}/${context.week.shadowing.length}`,
+          `Mở miệng · ${index + 1}/${lines.length}`,
         ),
         el("section", { class: "card" }, [
           el("p", { class: "card__prompt card__prompt--en" }, [line.text]),

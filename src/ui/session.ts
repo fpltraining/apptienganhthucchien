@@ -11,6 +11,7 @@ import type { AccountId } from "../data/schema";
 import {
   completeSession,
   loadDeck,
+  loadTroubleWords,
   recordTroubleWords,
   saveCards,
 } from "../data/repository";
@@ -179,6 +180,10 @@ export async function runSession(
   // different exercises before it is called out (§9.2).
   const scored: PronunciationScore[] = [];
 
+  // Loaded once for the whole session: the list is about weeks of history, and
+  // recomputing it between blocks would only reflect this session's misses.
+  const troubleWords = await loadTroubleWords(accountId);
+
   const context: BlockContext = {
     root,
     week,
@@ -188,6 +193,7 @@ export async function runSession(
     // keep the default.
     deadlineMs: week.responseDeadlineMs ?? RESPONSE_DEADLINE_MS,
     voiceLang: week.voiceLang,
+    troubleWords,
     onAttemptScored: (attempt) => {
       if (attempt.pronunciationScore === null) return;
       scored.push({

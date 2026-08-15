@@ -255,3 +255,42 @@ function shiftDay(day: string, days: number): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}-${pad(shifted.getDate())}`;
 }
+
+/**
+ * Chooses shadowing lines that drill what this learner keeps getting wrong.
+ *
+ * The app already knew which sounds were a problem and did nothing with it
+ * (§9.2) — it showed the learner a list and then set the same drills as
+ * everyone else. Knowing without acting is the weaker half of the feature.
+ *
+ * The week's own lines come first and are never all replaced. This week's
+ * pronunciation focus is the lesson; remedial work is an addition to it, not a
+ * substitute, or a learner with three stubborn words would stop progressing
+ * through the course's sounds entirely.
+ */
+export function pickRemedialLines<T extends { text: string }>(
+  troubleWords: readonly string[],
+  pool: readonly T[],
+  limit = 2,
+): T[] {
+  if (troubleWords.length === 0) return [];
+
+  // Matched exactly, after the same normalising the scorer uses. Trouble words
+  // come from the scorer's own output, so they already look like these do — a
+  // looser match would be guessing at which word the learner actually fumbled.
+  const wanted = new Set(troubleWords.flatMap((word) => normalise(word)));
+  const scored: { line: T; hits: number }[] = [];
+
+  for (const line of pool) {
+    const words = new Set(normalise(line.text));
+    let hits = 0;
+    for (const word of wanted) if (words.has(word)) hits += 1;
+    if (hits > 0) scored.push({ line, hits });
+  }
+
+  // Most trouble words per line first: one sentence that exercises two weak
+  // sounds is worth more than two that exercise one each, and costs the
+  // learner less time.
+  scored.sort((a, b) => b.hits - a.hits);
+  return scored.slice(0, limit).map((entry) => entry.line);
+}

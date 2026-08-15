@@ -270,6 +270,16 @@ export async function settleCheckpoint(
   });
 }
 
+/** The sounds this learner is currently working on (§9.2). */
+export async function loadTroubleWords(accountId: AccountId): Promise<string[]> {
+  const known = await getTroubleWords(accountId);
+  return soundsToPractise(
+    known
+      .map(({ word, misses, lastMissedDay }) => ({ word, misses, lastMissedDay }))
+      .sort((a, b) => b.misses - a.misses),
+  );
+}
+
 export async function recordTroubleWords(
   accountId: AccountId,
   missed: readonly string[],

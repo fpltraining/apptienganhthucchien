@@ -3,6 +3,7 @@ import {
   feedbackFor,
   mergeTroubleWords,
   normalise,
+  pickRemedialLines,
   scoreAttempt,
   soundsToPractise,
   troubleWords,
@@ -156,5 +157,44 @@ describe("soundsToPractise", () => {
       lastMissedDay: "2026-03-02",
     }));
     expect(soundsToPractise(many)).toHaveLength(3);
+  });
+});
+
+describe("pickRemedialLines", () => {
+  const pool = [
+    { text: "Three coffees, please." },
+    { text: "I walk to the market." },
+    { text: "The street is three miles down." },
+    { text: "Could you say that again?" },
+  ];
+
+  it("finds lines that drill the words being missed", () => {
+    const picked = pickRemedialLines(["three"], pool, 1);
+    expect(normalise(picked[0]!.text)).toContain("three");
+  });
+
+  it("prefers a line that exercises two weak sounds over two that do one each", () => {
+    // One sentence covering both is worth more and costs the learner less time.
+    const picked = pickRemedialLines(["three", "street"], pool, 1);
+    expect(picked[0]?.text).toBe("The street is three miles down.");
+  });
+
+  it("returns nothing when there is nothing to remediate", () => {
+    expect(pickRemedialLines([], pool)).toEqual([]);
+  });
+
+  it("returns nothing when no line happens to drill those words", () => {
+    // Better to add nothing than to pad the session with unrelated lines.
+    expect(pickRemedialLines(["xylophone"], pool)).toEqual([]);
+  });
+
+  it("never adds more than the limit, however many words are weak", () => {
+    // Remedial work is an addition to the week's focus, not a replacement for
+    // it; a learner with many weak words must still progress through the course.
+    expect(pickRemedialLines(["three", "street", "walk", "say"], pool, 2)).toHaveLength(2);
+  });
+
+  it("matches regardless of case and punctuation", () => {
+    expect(pickRemedialLines(["THREE"], pool, 1)).toHaveLength(1);
   });
 });

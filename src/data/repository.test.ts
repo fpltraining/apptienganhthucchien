@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   completeSession,
   loadAccount,
+  loadTroubleWords,
   recordTroubleWords,
   settleCheckpoint,
 } from "./repository";
@@ -234,5 +235,20 @@ describe("checkpoints", () => {
     await seedProfile({ currentWeek: 1, sessionsThisWeek: 0, pendingCheckpoint: "A" });
     await settleCheckpoint("acc1", false, 2);
     expect((await loadAccount("acc1")).summary.profile.currentWeek).toBe(1);
+  });
+});
+
+describe("loadTroubleWords", () => {
+  const day = (offset: number) => new Date(2026, 2, 2 + offset);
+
+  it("hands the session the sounds worth drilling", async () => {
+    for (let i = 0; i < 3; i += 1) await recordTroubleWords("acc1", ["three"], day(i));
+    expect(await loadTroubleWords("acc1")).toEqual(["three"]);
+  });
+
+  it("gives nothing for a learner with no pattern yet", async () => {
+    await recordTroubleWords("acc1", ["three"], day(0));
+    // One slip must not start rewriting their drills.
+    expect(await loadTroubleWords("acc1")).toEqual([]);
   });
 });
