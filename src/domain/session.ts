@@ -55,19 +55,32 @@ export type BlockResult = {
   avgLatencyMs: number | null;
 };
 
+/**
+ * Blocks of a maintenance session, after the course is over (§7).
+ *
+ * No vocabulary block: there is no week 27 to teach from. What remains is
+ * keeping the phrases retrievable and keeping the mouth working.
+ */
+export const MAINTENANCE_ORDER = ["review", "speaking"] as const satisfies readonly BlockKind[];
+
 export type SessionState = {
   startedAt: number;
-  /** Index into BLOCK_ORDER; equal to the length when the session is done. */
+  /** Index into `order`; equal to its length when the session is done. */
   currentIndex: number;
   results: BlockResult[];
+  /** The blocks this session runs — the course order, or maintenance. */
+  order: readonly BlockKind[];
 };
 
-export function startSession(now = Date.now()): SessionState {
-  return { startedAt: now, currentIndex: 0, results: [] };
+export function startSession(
+  now = Date.now(),
+  order: readonly BlockKind[] = BLOCK_ORDER,
+): SessionState {
+  return { startedAt: now, currentIndex: 0, results: [], order };
 }
 
 export function currentBlock(state: SessionState): BlockKind | null {
-  return BLOCK_ORDER[state.currentIndex] ?? null;
+  return state.order[state.currentIndex] ?? null;
 }
 
 export function finishBlock(state: SessionState, result: BlockResult): SessionState {
@@ -79,7 +92,7 @@ export function finishBlock(state: SessionState, result: BlockResult): SessionSt
 }
 
 export function isComplete(state: SessionState): boolean {
-  return state.currentIndex >= BLOCK_ORDER.length;
+  return state.currentIndex >= state.order.length;
 }
 
 /** Minutes of real work, from the blocks themselves rather than wall clock. */
@@ -101,7 +114,10 @@ export function activeMinutes(state: SessionState): number {
  */
 export function tierFor(state: SessionState): SessionTier {
   const completed = state.results.filter((result) => result.completed);
-  if (completed.length >= BLOCK_ORDER.length) return "full";
+  // Measured against this session's own order, or a maintenance day - which is
+  // complete at two blocks - would always grade as partial, and the streak the
+  // learner spent six months building would start reading as a decline.
+  if (completed.length >= state.order.length) return "full";
   if (completed.length >= 2) return "short";
   return "minimal";
 }

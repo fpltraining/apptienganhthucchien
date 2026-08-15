@@ -252,3 +252,26 @@ describe("loadTroubleWords", () => {
     expect(await loadTroubleWords("acc1")).toEqual([]);
   });
 });
+
+describe("graduation", () => {
+  it("ends the course when Test C is passed", async () => {
+    await seedProfile({ currentWeek: 26, pendingCheckpoint: "C" });
+    await settleCheckpoint("acc1", true, 0);
+    expect((await loadAccount("acc1")).summary.profile.graduatedOn).toBeTruthy();
+  });
+
+  it("does not end it when Test C is failed", async () => {
+    // A fail sends them back two weeks to sit it again, same as A and B.
+    await seedProfile({ currentWeek: 26, pendingCheckpoint: "C" });
+    await settleCheckpoint("acc1", false, 2);
+    const { profile } = (await loadAccount("acc1")).summary;
+    expect(profile.graduatedOn).toBeNull();
+    expect(profile.currentWeek).toBe(24);
+  });
+
+  it("does not end it when an earlier checkpoint is passed", async () => {
+    await seedProfile({ currentWeek: 8, pendingCheckpoint: "A" });
+    await settleCheckpoint("acc1", true, 0);
+    expect((await loadAccount("acc1")).summary.profile.graduatedOn).toBeNull();
+  });
+});

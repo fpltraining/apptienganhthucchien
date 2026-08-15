@@ -20,6 +20,7 @@ import type { StreakEvent } from "../domain/streak";
 import {
   BLOCK_LABELS_VI,
   BLOCK_ORDER,
+  MAINTENANCE_ORDER,
   activeMinutes,
   currentBlock,
   finishBlock,
@@ -44,6 +45,7 @@ import {
   runVocabularyBlock,
 } from "./blocks";
 import type { BlockContext } from "./blocks";
+import type { BlockKind } from "../domain/session";
 import type { PronunciationScore } from "../domain/pronunciation";
 import type { CheckpointKind } from "../domain/checkpoint";
 
@@ -68,18 +70,22 @@ export type SessionOutcome = {
 function renderIntro(
   root: HTMLElement,
   weekTitle: string,
+  order: readonly BlockKind[],
   onStart: () => void,
   onCancel: () => void,
 ): void {
+  // The listed blocks are the ones this session will actually run. A
+  // maintenance day showing the course's four would promise a vocabulary block
+  // that never comes, and the learner has no way to tell that from a bug.
+  const maintenance = order !== BLOCK_ORDER;
+
   mount(
     root,
     el("main", { class: "block" }, [
-      el("p", { class: "block__step" }, ["Buổi học hôm nay"]),
-      el("h1", { class: "block__title" }, [weekTitle]),
+      el("p", { class: "block__step" }, [maintenance ? "Giữ nhịp hôm nay" : "Buổi học hôm nay"]),
+      el("h1", { class: "block__title" }, [maintenance ? "Ôn và nói" : weekTitle]),
       el("ol", { class: "plan" }, [
-        ...BLOCK_ORDER.map((kind) =>
-          el("li", { class: "plan__item" }, [BLOCK_LABELS_VI[kind]]),
-        ),
+        ...order.map((kind) => el("li", { class: "plan__item" }, [BLOCK_LABELS_VI[kind]])),
       ]),
       el("p", { class: "block__hint" }, [
         "App cần dùng micro để nghe bác nói. Nếu không cho phép thì vẫn học được, chỉ là bác tự bấm nút thay vì app tự nghe.",
@@ -160,14 +166,22 @@ function renderSummary(
 export async function runSession(
   root: HTMLElement,
   accountId: AccountId,
-  options: { week: number; audioRate: number; lastStudyDay: string | null },
+  options: {
+    week: number;
+    audioRate: number;
+    lastStudyDay: string | null;
+    /** True once the course is finished (§7). */
+    maintenance?: boolean;
+  },
 ): Promise<SessionOutcome> {
   const week = getWeek(options.week);
+  const order = options.maintenance ? MAINTENANCE_ORDER : BLOCK_ORDER;
 
   const started = await new Promise<boolean>((resolve) => {
     renderIntro(
       root,
       week.titleVi,
+      order,
       () => resolve(true),
       () => resolve(false),
     );
@@ -207,7 +221,9 @@ export async function runSession(
   let deck = await loadDeck(accountId, options.week);
   const touched = new Map<string, ReviewCard>();
 
-  let state = startSession();
+  // A graduated learner runs the shorter maintenance session (§7): no new
+  // vocabulary, because there is no week 27 to teach from.
+  let state = startSession(Date.now(), order);
 
   try {
     while (currentBlock(state) !== null) {

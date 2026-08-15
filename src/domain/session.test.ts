@@ -7,6 +7,7 @@ import {
   finishBlock,
   isComplete,
   isRecordable,
+  MAINTENANCE_ORDER,
   startSession,
   strugglingBlocks,
   tierFor,
@@ -127,5 +128,31 @@ describe("strugglingBlocks", () => {
 
   it("only considers the most recent sessions", () => {
     expect(strugglingBlocks([[weak], [weak], [weak], [fine], [fine], [fine]])).toEqual([]);
+  });
+});
+
+describe("maintenance sessions", () => {
+  it("skips the vocabulary block — there is no week 27 to teach", () => {
+    const state = startSession(0, MAINTENANCE_ORDER);
+    expect(currentBlock(state)).toBe("review");
+    expect(MAINTENANCE_ORDER).not.toContain("vocabulary");
+  });
+
+  it("is complete after its own blocks, not the course's four", () => {
+    let state = startSession(0, MAINTENANCE_ORDER);
+    for (const kind of MAINTENANCE_ORDER) {
+      state = finishBlock(state, {
+        kind,
+        completed: true,
+        seconds: 400,
+        itemsAttempted: 5,
+        itemsCorrect: 5,
+        avgLatencyMs: null,
+      });
+    }
+    expect(isComplete(state)).toBe(true);
+    // Graded against its own length, or every maintenance day would read as a
+    // partial one and the six-month streak would look like a decline.
+    expect(tierFor(state)).toBe("full");
   });
 });

@@ -14,9 +14,15 @@
 import type { AccountSummary } from "../data/repository";
 import type { Account } from "../data/schema";
 import type { StreakEvent } from "../domain/streak";
-import { BLOCK_LABELS_VI, BLOCK_MINUTES, BLOCK_ORDER } from "../domain/session";
+import {
+  BLOCK_LABELS_VI,
+  BLOCK_MINUTES,
+  BLOCK_ORDER,
+  MAINTENANCE_ORDER,
+} from "../domain/session";
 import { getWeek } from "../content";
 import { el } from "./dom";
+import { MAINTENANCE_BLOCK_MINUTES, MAINTENANCE_MINUTES } from "../domain/maintenance";
 
 export type HomeActions = {
   onSwitchAccount: () => void;
@@ -115,6 +121,34 @@ function todayPlan(weekNumber: number, studiedToday: boolean): HTMLElement {
   ]);
 }
 
+/**
+ * The plan after the course is finished (§7).
+ *
+ * Says what today is for rather than showing a week number that no longer
+ * moves. A learner who graduated and still saw "Tuần 26" every morning would
+ * reasonably conclude the app had stopped noticing them.
+ */
+function maintenancePlan(studiedToday: boolean): HTMLElement {
+  return el("section", { class: "panel" }, [
+    el("p", { class: "panel__label" }, [`Giữ nhịp · ${MAINTENANCE_MINUTES} phút`]),
+    el("p", { class: "panel__stat panel__stat--title" }, ["Ôn và nói"]),
+    el(
+      "ul",
+      { class: "blocks" },
+      // Named from the same map the session uses. Hand-written labels here
+      // drifted from the real ones immediately: the plan promised "Ôn nhanh"
+      // and the session then opened a block called "Chốt lại".
+      [...MAINTENANCE_ORDER, "freeTalk" as const].map((kind) =>
+        el("li", { class: "blocks__item", "data-state": studiedToday ? "done" : "later" }, [
+          el("span", { class: "blocks__dot" }, [studiedToday ? "✓" : ""]),
+          el("span", { class: "blocks__name" }, [BLOCK_LABELS_VI[kind]]),
+          el("span", { class: "blocks__mins" }, [`${MAINTENANCE_BLOCK_MINUTES[kind]} phút`]),
+        ]),
+      ),
+    ),
+  ]);
+}
+
 export function renderHome(
   account: Account,
   summary: AccountSummary,
@@ -140,7 +174,7 @@ export function renderHome(
     // score the learner has already lost before starting.
     streak.current > 0 ? streakStrip(summary) : null,
 
-    todayPlan(profile.currentWeek, studiedToday),
+    profile.graduatedOn ? maintenancePlan(studiedToday) : todayPlan(profile.currentWeek, studiedToday),
 
     el("button", { class: "btn", type: "button", onclick: actions.onStartSession }, [
       studiedToday ? "Học thêm một buổi" : "Bắt đầu",

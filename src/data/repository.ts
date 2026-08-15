@@ -260,9 +260,14 @@ export async function settleCheckpoint(
   extraWeeks: number,
 ): Promise<void> {
   const profile = (await getProfile(accountId)) ?? createProfile(accountId);
+  // Passing Test C ends the course. Failing it does not: the learner goes back
+  // two weeks and sits it again, same as the other two.
+  const graduated = passed && profile.pendingCheckpoint === "C";
+
   await putProfile({
     ...profile,
     pendingCheckpoint: null,
+    graduatedOn: graduated ? toDayKey(new Date()) : (profile.graduatedOn ?? null),
     currentWeek: passed ? profile.currentWeek : Math.max(1, profile.currentWeek - extraWeeks),
     // Restarting the week count matters on a fail: dropping back two weeks with
     // four of five sessions already banked would skip straight past them again.

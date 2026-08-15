@@ -110,6 +110,7 @@ async function startLesson(id: AccountId): Promise<void> {
     week: summary.profile.currentWeek,
     audioRate: summary.profile.audioRate,
     lastStudyDay: summary.streak.lastCountedDay,
+    maintenance: Boolean(summary.profile.graduatedOn),
   });
 
   // The checkpoint runs straight after the session that earned it, while the

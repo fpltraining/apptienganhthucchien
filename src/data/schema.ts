@@ -74,6 +74,13 @@ export type AccountProfile = {
   /** Where in the 26 weeks this learner is: from placement, then progress. */
   currentWeek: number;
   /**
+   * Set once the course is finished (§7). From here the app stops handing out
+   * new weeks and switches to keeping what was learned.
+   *
+   * Optional: nobody who started before this existed has graduated yet.
+   */
+  graduatedOn?: string | null;
+  /**
    * A checkpoint owed but not yet taken (§6).
    *
    * Stored rather than derived from the week number because the learner must
