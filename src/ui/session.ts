@@ -71,7 +71,7 @@ function renderIntro(
         ),
       ]),
       el("p", { class: "block__hint" }, [
-        "App cần dùng micro để nghe bạn nói. Nếu không cho phép thì vẫn học được, chỉ là bạn tự bấm nút thay vì app tự nghe.",
+        "App cần dùng micro để nghe bác nói. Nếu không cho phép thì vẫn học được, chỉ là bác tự bấm nút thay vì app tự nghe.",
       ]),
       el("div", { class: "stack" }, [
         el("button", { class: "btn", type: "button", onclick: onStart }, ["Bắt đầu"]),
@@ -105,7 +105,7 @@ function renderSummary(
     el("main", { class: "block" }, [
       el("h1", { class: "block__title" }, ["Xong rồi!"]),
       el("section", { class: "panel" }, [
-        el("p", { class: "panel__label" }, ["Bạn đã nói"]),
+        el("p", { class: "panel__label" }, ["Bác đã nói"]),
         el("p", { class: "panel__stat" }, [`${spoken} câu`]),
         el("p", { class: "panel__note" }, [`${minutes} phút học thật`]),
       ]),

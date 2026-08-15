@@ -13,6 +13,11 @@ import { VitePWA } from "vite-plugin-pwa";
  * Always ends in a slash, because `start_url` and `navigateFallback` are built
  * by appending to it.
  */
+// Declared rather than pulled in from @types/node: this config is the only
+// file in the project that touches the environment, and one global costs less
+// than adding Node's whole type surface to a browser codebase.
+declare const process: { env: Record<string, string | undefined> };
+
 const base = withTrailingSlash(process.env.BASE_PATH ?? "/");
 
 function withTrailingSlash(path: string): string {

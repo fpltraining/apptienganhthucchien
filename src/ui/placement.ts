@@ -121,7 +121,7 @@ export async function runPlacement(ctx: Ctx): Promise<PlacementResult | null> {
       ctx.root,
       screen("Trước khi bắt đầu", "Nói chuyện với app 7 phút", [
         el("p", { class: "block__sub" }, [
-          "Để app biết nên bắt đầu từ đâu cho vừa sức bạn. Không có điểm, không có đúng sai — cứ trả lời thoải mái.",
+          "Để app biết nên bắt đầu từ đâu cho vừa sức bác. Không có điểm, không có đúng sai — cứ trả lời thoải mái.",
         ]),
         el("div", { class: "stack" }, [
           el("button", { class: "btn", type: "button", onclick: () => resolve(true) }, [
@@ -177,7 +177,7 @@ export async function runPlacement(ctx: Ctx): Promise<PlacementResult | null> {
       ctx.root,
       screen(`Trả lời · ${i + 1}/${OPEN_QUESTIONS.length}`, question.ask, [
         el("p", { class: "block__sub" }, [question.askVi]),
-        el("p", { class: "block__hint" }, ["Nói bao nhiêu cũng được, dài ngắn tuỳ bạn."]),
+        el("p", { class: "block__hint" }, ["Nói bao nhiêu cũng được, dài ngắn tuỳ bác."]),
         host,
       ]),
     );
@@ -217,7 +217,7 @@ export async function runPlacement(ctx: Ctx): Promise<PlacementResult | null> {
 
     mount(
       ctx.root,
-      screen("Thử một tình huống", "Bạn đang gọi đồ ở quán cà phê", [
+      screen("Thử một tình huống", "Bác đang gọi đồ ở quán cà phê", [
         el("section", { class: "dialogue" }, [
           el("p", { class: "dialogue__who" }, ["Nhân viên"]),
           el("p", { class: "dialogue__say" }, [turn.say]),
@@ -264,14 +264,14 @@ export function renderPlacementOutcome(
 ): void {
   const pace =
     result.listeningTrack < result.track
-      ? "App sẽ cho bạn nghe chậm hơn một chút lúc đầu, rồi nhanh dần."
+      ? "App sẽ cho bác nghe chậm hơn một chút lúc đầu, rồi nhanh dần."
       : "Tốc độ nghe sẽ tăng dần theo từng tuần.";
 
   mount(
     root,
     screen("Xong rồi", "App đã biết nên bắt đầu từ đâu", [
       el("section", { class: "panel" }, [
-        el("p", { class: "panel__label" }, ["Bạn sẽ bắt đầu ở"]),
+        el("p", { class: "panel__label" }, ["Bác sẽ bắt đầu ở"]),
         el("p", { class: "panel__stat" }, [`Tuần ${result.startWeek}`]),
         el("p", { class: "panel__note" }, [pace]),
       ]),

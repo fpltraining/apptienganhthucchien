@@ -32,7 +32,17 @@ export type AccountSummary = {
   /** Whether a session has already been completed today. */
   studiedToday: boolean;
   /** Days studied in the trailing week, for the weekly goal. */
-  week: { done: number; goal: number; met: boolean };
+  week: {
+    done: number;
+    goal: number;
+    met: boolean;
+    /**
+     * The trailing seven days, oldest first, so the home screen can draw a real
+     * week rather than a count. A rest day is neither studied nor missed and is
+     * drawn as neither (§10.3).
+     */
+    pattern: ("done" | "rest" | "none")[];
+  };
 };
 
 function createProfile(accountId: AccountId): AccountProfile {
@@ -86,10 +96,17 @@ export async function loadAccount(
       streak: settled.state,
       profile,
       studiedToday: todayRecord !== undefined,
-      week: weeklyProgress(
-        recentDays.map((record) => record.day),
-        weekStart,
-      ),
+      week: {
+        ...weeklyProgress(
+          recentDays.map((record) => record.day),
+          weekStart,
+        ),
+        pattern: weekPattern(
+          new Set(recentDays.map((record) => record.day)),
+          new Set(settled.state.frozenDays),
+          weekStart,
+        ),
+      },
     },
     events: settled.events,
   };
@@ -148,6 +165,28 @@ export async function completeSession(
     events,
     advancedToWeek: advance.advanced ? advance.currentWeek : null,
   };
+}
+
+/**
+ * The trailing seven days as states, oldest first.
+ *
+ * Studied wins over frozen: a day can be both if a freeze was applied and the
+ * learner then came back to it, and having actually studied is the truer thing
+ * to show them.
+ */
+function weekPattern(
+  studied: ReadonlySet<string>,
+  frozen: ReadonlySet<string>,
+  weekStart: string,
+): ("done" | "rest" | "none")[] {
+  const days: ("done" | "rest" | "none")[] = [];
+  for (let offset = 0; offset < 7; offset++) {
+    const day = addDays(weekStart, offset);
+    if (studied.has(day)) days.push("done");
+    else if (frozen.has(day)) days.push("rest");
+    else days.push("none");
+  }
+  return days;
 }
 
 export async function saveProfile(profile: AccountProfile): Promise<void> {

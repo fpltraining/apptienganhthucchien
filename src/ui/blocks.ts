@@ -111,6 +111,52 @@ function speakOptions(context: BlockContext): { rate: number; lang?: string } {
     : { rate: context.audioRate, lang: context.voiceLang };
 }
 
+/**
+ * The microphone, drawn as a state rather than an icon.
+ *
+ * The learner has to be able to tell, without reading, whether the app is
+ * listening right now — that is the single most confusing moment in a speaking
+ * app. The ring fills and the level bars move while it listens, and both stop
+ * when it is not.
+ */
+function micPanel(listening: boolean, label: string): HTMLElement {
+  return el("div", { class: "mic", "data-listening": listening ? "true" : "false" }, [
+    el("span", { class: "mic__ring" }, [
+      el(
+        "span",
+        { class: "mic__bars", "aria-hidden": "true" },
+        [0, 1, 2, 3, 4, 5].map(() => el("i", {}, [])),
+      ),
+    ]),
+    el("p", { class: "mic__state" }, [label]),
+  ]);
+}
+
+/**
+ * The response clock: a bar that empties over the week's deadline.
+ *
+ * Not a number counting down. Phase 3 tightens this to three seconds, and
+ * three digits ticking down at someone mid-sentence is the surest way to make
+ * them lose the sentence. It runs out to grey — there is no red here, the same
+ * as everywhere else.
+ */
+function responseClock(deadlineMs: number): HTMLElement {
+  const fill = el("span", { class: "clock__fill" }, []);
+  const clock = el("div", { class: "clock" }, [
+    el("div", { class: "clock__track" }, [fill]),
+    el("p", { class: "clock__label" }, [`${Math.round(deadlineMs / 1000)} giây để bắt đầu nói`]),
+  ]);
+
+  // Started on the next frame so the transition has a "from" value to animate
+  // out of; set in the same frame and the bar would simply appear empty.
+  requestAnimationFrame(() => {
+    fill.style.transition = `transform ${deadlineMs}ms linear`;
+    fill.style.transform = "scaleX(0)";
+  });
+
+  return clock;
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -158,13 +204,17 @@ export async function runVocabularyBlock(
           `Từ vựng · ${index + 1}/${cards.length}`,
         ),
         el("section", { class: "card" }, [
-          el("p", { class: "card__prompt" }, [prompt]),
+          el(
+            "p",
+            { class: isProduction ? "card__prompt" : "card__prompt card__prompt--en" },
+            [prompt],
+          ),
           answer,
           el("p", { class: "card__situation" }, [item.situation]),
         ]),
         feedback,
         el("p", { class: "block__hint" }, [
-          context.micReady ? "Nói to lên, app đang nghe…" : "Nói to lên rồi bấm nút bên dưới",
+          context.micReady ? "" : "Nói to lên rồi bấm nút bên dưới",
         ]),
       ]),
     );
@@ -230,6 +280,13 @@ async function captureAttempt(
   feedback: HTMLElement,
   target?: string,
 ): Promise<CapturedAttempt> {
+  if (context.micReady) {
+    feedback.replaceChildren(
+      micPanel(true, "Đang nghe bác nói…"),
+      responseClock(context.deadlineMs),
+    );
+  }
+
   if (context.micReady && target && recognitionSupported()) {
     const heard = await recognizeSpeech({ deadlineMs: context.deadlineMs });
     // A null answer means the recogniser is unavailable, so onset timing below
@@ -273,7 +330,7 @@ async function captureAttempt(
         onclick: () =>
           resolve({ spoken: true, latencyMs: 2500, pronunciationScore: null, missed: [] }),
       },
-      ["Tôi nói được"],
+      ["Bác nói được rồi"],
     );
     const missed = el(
       "button",
@@ -402,7 +459,7 @@ function askChoice(
       el(
         "button",
         {
-          class: "btn btn--choice",
+          class: "btn btn--choice btn--choice--en",
           type: "button",
           onclick: () => {
             const right = index === answerIndex;
@@ -475,7 +532,9 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
           line.focusVi,
           `Mở miệng · ${index + 1}/${context.week.shadowing.length}`,
         ),
-        el("section", { class: "card" }, [el("p", { class: "card__prompt" }, [line.text])]),
+        el("section", { class: "card" }, [
+          el("p", { class: "card__prompt card__prompt--en" }, [line.text]),
+        ]),
         feedback,
       ]),
     );
@@ -569,7 +628,10 @@ async function runRoleplayTurn(
   if (context.micReady && recognitionSupported()) {
     const heard = await recognizeSpeech({ deadlineMs: context.deadlineMs });
     if (heard && heard.transcript.length > 0) {
-      feedback.textContent = `Bạn nói: "${heard.transcript}"`;
+      feedback.replaceChildren(
+        el("span", { class: "heard" }, ["Bác nói: "]),
+        el("span", { class: "heard__words" }, [heard.transcript]),
+      );
       await wait(700);
       return { spoken: true, latencyMs: heard.latencyMs, transcript: heard.transcript };
     }
@@ -583,7 +645,7 @@ async function runRoleplayTurn(
       el(
         "button",
         {
-          class: "btn btn--choice",
+          class: "btn btn--choice btn--choice--en",
           type: "button",
           onclick: () => resolve({ spoken: true, latencyMs: 0, transcript: hint }),
         },
@@ -600,7 +662,7 @@ async function runRoleplayTurn(
       ["Bỏ qua lượt này"],
     );
     feedback.replaceChildren(
-      el("p", { class: "block__hint" }, ["Nói to câu bạn chọn, rồi bấm vào câu đó"]),
+      el("p", { class: "block__hint" }, ["Nói to câu bác chọn, rồi bấm vào câu đó"]),
       el("div", { class: "stack" }, [...choices, skip]),
     );
   });
@@ -649,7 +711,7 @@ export async function runReviewBlock(
     latencies.push(attempt.latencyMs);
     if (attempt.spoken) correct++;
 
-    feedback.textContent = item.phrase;
+    feedback.replaceChildren(el("span", { class: "answer-en" }, [item.phrase]));
     await speak(item.phrase, speakOptions(context));
     await wait(400);
   }

@@ -82,7 +82,27 @@ describe("completeSession", () => {
     await completeSession("acc1", "full", 45, TUE);
 
     const { summary } = await loadAccount("acc1", TUE);
-    expect(summary.week).toEqual({ done: 2, goal: 5, met: false });
+    expect(summary.week).toMatchObject({ done: 2, goal: 5, met: false });
+  });
+
+  it("reports which days of the trailing week were studied", async () => {
+    // The home screen draws a real week of pips from this, so the shape has to
+    // be the actual days rather than a count spread evenly.
+    await completeSession("acc1", "full", 45, MON);
+    await completeSession("acc1", "full", 45, TUE);
+
+    const { summary } = await loadAccount("acc1", TUE);
+    expect(summary.week.pattern).toHaveLength(7);
+    // The window is the trailing seven days ending today, so the two studied
+    // days are the last two.
+    expect(summary.week.pattern.slice(-2)).toEqual(["done", "done"]);
+    expect(summary.week.pattern.slice(0, 5)).toEqual([
+      "none",
+      "none",
+      "none",
+      "none",
+      "none",
+    ]);
   });
 });
 

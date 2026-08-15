@@ -766,3 +766,34 @@ button {
   outline: 3px solid var(--flame-ink);
   outline-offset: 3px;
 }
+
+/* The week's title is the headline of the home screen, so it uses the stat slot
+   but at a size that fits a phrase rather than a two-digit number. */
+.panel__stat--title {
+  font-size: var(--step-2);
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+/* What the recogniser heard, quoted back. The words themselves are English, so
+   they take the English face — the label around them stays Vietnamese. */
+.heard {
+  color: var(--ink-soft);
+}
+
+.heard__words,
+.answer-en {
+  font-family: var(--font-en);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The primary action sits at the bottom of the screen on every view, so the
+   thumb never has to go looking for it. Pushed down rather than fixed: a fixed
+   bar would cover content on a short screen, and this app's screens are short
+   by design. */
+.home > .btn:last-child,
+.block > .btn:last-child,
+.block > .stack:last-child {
+  margin-top: auto;
+}

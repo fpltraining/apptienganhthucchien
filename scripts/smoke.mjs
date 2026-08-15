@@ -148,9 +148,56 @@ await captureOnce("tong-ket");
 await page.getByRole("button", { name: "Về trang chính" }).click();
 await page.waitForSelector(".home");
 
-const streak = (await page.locator(".panel__stat").first().textContent())?.trim();
-check("streak counted after the lesson", streak, "🔥 1");
-check("week counted", await page.locator(".panel__stat").nth(1).textContent(), "1/5");
+const streak = (await page.locator(".streak__num").textContent())?.trim();
+check("streak counted after the lesson", streak, "1");
+check(
+  "first day is named as such, not counted at the learner",
+  (await page.locator(".streak__label").textContent())?.trim(),
+  "ngày đầu tiên",
+);
+check(
+  "week progress worded as remaining, not as a shortfall",
+  (await page.locator(".streak__note").textContent())?.trim(),
+  "Tuần này 1/5 buổi — còn 4 buổi nữa.",
+);
+// One pip per day of the trailing week, exactly one of them filled.
+check("a full week of pips", String(await page.locator(".pip").count()), "7");
+check("one day done", String(await page.locator(".pip--on").count()), "1");
+// The plan names today's week rather than making the learner go looking. The
+// week itself depends on how placement scored this walk, so what matters is
+// that a real title is there and that it is labelled with its week number.
+const weekTitle = (await page.locator(".panel__stat--title").textContent())?.trim() ?? "";
+checkThat("today's week is named on the home screen", weekTitle.length > 0, weekTitle);
+checkThat(
+  "the week is numbered",
+  /^Tuần \d+ · 45 phút$/.test(
+    (await page.locator(".panel__label").first().textContent())?.trim() ?? "",
+  ),
+  (await page.locator(".panel__label").first().textContent())?.trim(),
+);
+check("today's four blocks are listed", String(await page.locator(".blocks__item").count()), "4");
+
+// No red anywhere: the design rules it out, and a stylesheet edit could
+// reintroduce it without any test noticing.
+const reds = await page.evaluate(() =>
+  [...document.querySelectorAll("*")]
+    .map((node) => ({ node, style: getComputedStyle(node) }))
+    .flatMap(({ node, style }) =>
+      [style.color, style.backgroundColor, style.borderLeftColor].map(
+        (value) => `${node.tagName.toLowerCase()}.${node.className}:${value}`,
+      ),
+    )
+    .filter((entry) => {
+      const match = /rgba?\((\d+), (\d+), (\d+)/.exec(entry);
+      if (!match) return false;
+      const [r, g, b] = [Number(match[1]), Number(match[2]), Number(match[3])];
+      // A true red has green and blue close together. The son orange is
+      // red-dominant too, but its green sits well above its blue — that gap is
+      // what separates #A8360D, a dark burnt orange, from an actual alarm red.
+      return r > 140 && g < 90 && Math.abs(g - b) < 15;
+    }),
+);
+check("nothing on the home screen is red", reds.join(" ") || "none", "none");
 
 // --- the account boundary holds ---
 await page.locator(".linkish").click();
