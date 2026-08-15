@@ -1,6 +1,6 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { completeSession, loadAccount } from "./repository";
+import { completeSession, loadAccount, recordTroubleWords } from "./repository";
 import { getDaysBetween, resetDbForTests } from "./db";
 
 beforeEach(async () => {
@@ -142,5 +142,35 @@ describe("week progression", () => {
     const theirs = await loadAccount("acc1", day(4));
     expect(mine.summary.profile.currentWeek).toBe(2);
     expect(theirs.summary.profile.currentWeek).toBe(1);
+  });
+});
+
+describe("trouble words", () => {
+  const day = (offset: number) => new Date(2026, 2, 2 + offset);
+
+  it("only names a word once it is a pattern, not on the first slip", async () => {
+    expect(await recordTroubleWords("acc1", ["three"], day(0))).toEqual([]);
+    expect(await recordTroubleWords("acc1", ["three"], day(1))).toEqual([]);
+    expect(await recordTroubleWords("acc1", ["three"], day(2))).toEqual(["three"]);
+  });
+
+  it("remembers across sessions rather than starting over each time", async () => {
+    await recordTroubleWords("acc1", ["street"], day(0));
+    await recordTroubleWords("acc1", ["street"], day(3));
+    // A whole week later it is still counted — this is the point of storing it.
+    expect(await recordTroubleWords("acc1", ["street"], day(7))).toEqual(["street"]);
+  });
+
+  it("forgets a word that stopped being a problem", async () => {
+    await recordTroubleWords("acc1", ["three", "three", "three"], day(0));
+    expect(await recordTroubleWords("acc1", [], day(1))).toEqual(["three"]);
+    // Past the window with no further misses, it drops off rather than sending
+    // the learner back to practise something they can already say.
+    expect(await recordTroubleWords("acc1", [], day(40))).toEqual([]);
+  });
+
+  it("keeps the two accounts' sounds apart", async () => {
+    await recordTroubleWords("acc1", ["three", "three", "three"], day(0));
+    expect(await recordTroubleWords("acc2", [], day(0))).toEqual([]);
   });
 });

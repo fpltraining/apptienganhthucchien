@@ -9,11 +9,17 @@
  * that returns rows for both accounts at once.
  */
 
-import type { AccountId, DayRecord, StreakState, AccountProfile } from "./schema";
+import type {
+  AccountId,
+  DayRecord,
+  StreakState,
+  AccountProfile,
+  StoredTroubleWord,
+} from "./schema";
 import type { ReviewCard } from "../domain/srs";
 
 const DB_NAME = "tiengannh";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBDatabase> | null = null;
 
@@ -38,6 +44,11 @@ function openDb(): Promise<IDBDatabase> {
       }
       // Recognition and production of the same phrase are separate cards with
       // separate schedules, so direction is part of the key (§8.3).
+      if (!db.objectStoreNames.contains("sounds")) {
+        // Keyed per account: §13.1 keeps no learning record shared, and which
+        // sounds someone struggles with is as personal as it gets.
+        db.createObjectStore("sounds", { keyPath: ["accountId", "word"] });
+      }
       if (!db.objectStoreNames.contains("cards")) {
         db.createObjectStore("cards", { keyPath: ["accountId", "itemId", "direction"] });
       }
@@ -66,7 +77,7 @@ function promisify<T>(request: IDBRequest<T>): Promise<T> {
 }
 
 async function withStore<T>(
-  store: "days" | "streaks" | "profiles" | "cards",
+  store: "days" | "streaks" | "profiles" | "cards" | "sounds",
   mode: IDBTransactionMode,
   run: (store: IDBObjectStore) => IDBRequest<T>,
 ): Promise<T> {
@@ -149,6 +160,33 @@ export async function putCards(cards: readonly ReviewCard[]): Promise<void> {
     // One transaction for the batch: a partial write would leave some cards
     // rescheduled and others not, which is worse than none of them being.
     for (const card of cards) store.put(card);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+  });
+}
+
+export async function getTroubleWords(accountId: AccountId): Promise<StoredTroubleWord[]> {
+  const range = IDBKeyRange.bound([accountId], [accountId, []]);
+  return withStore("sounds", "readonly", (store) => store.getAll(range));
+}
+
+/**
+ * Replaces this account's trouble words wholesale.
+ *
+ * A merge produces the complete new list, including dropping words that aged
+ * out, so writing only the survivors would leave the stale ones behind.
+ */
+export async function putTroubleWords(
+  accountId: AccountId,
+  words: readonly StoredTroubleWord[],
+): Promise<void> {
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction("sounds", "readwrite");
+    const store = tx.objectStore("sounds");
+    store.delete(IDBKeyRange.bound([accountId], [accountId, []]));
+    for (const word of words) store.put(word);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));

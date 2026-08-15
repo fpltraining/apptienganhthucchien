@@ -183,3 +183,75 @@ export function troubleWords(
     .sort((a, b) => b[1] - a[1])
     .map(([word]) => word);
 }
+
+/**
+ * A word the learner keeps failing to get across, remembered between sessions.
+ *
+ * §9.2 asks which sounds to work on, and one session cannot answer that — a
+ * word missed once is a bad take, a word missed across three weeks is a habit.
+ */
+export type TroubleRecord = {
+  word: string;
+  misses: number;
+  /** Local day key of the most recent miss, so old entries can fall away. */
+  lastMissedDay: string;
+};
+
+/** Misses before a word is worth naming (§9.2). */
+export const TROUBLE_THRESHOLD = 3;
+
+/** How long a word stays on the list without being missed again. */
+export const TROUBLE_WINDOW_DAYS = 21;
+
+/**
+ * Folds one session's misses into what was already known.
+ *
+ * Counting up without ever counting down would mean a word fixed two months
+ * ago sits at the top of the list forever, and the learner is sent to practise
+ * something they can already say. So a word that has not been missed inside
+ * the window drops out entirely rather than decaying slowly: half-remembering
+ * a solved problem is worse than forgetting it.
+ */
+export function mergeTroubleWords(
+  known: readonly TroubleRecord[],
+  missedThisSession: readonly string[],
+  today: string,
+): TroubleRecord[] {
+  const cutoff = shiftDay(today, -TROUBLE_WINDOW_DAYS);
+  const merged = new Map<string, TroubleRecord>();
+
+  for (const record of known) {
+    if (record.lastMissedDay >= cutoff) merged.set(record.word, { ...record });
+  }
+
+  for (const word of missedThisSession) {
+    const existing = merged.get(word);
+    merged.set(word, {
+      word,
+      // A word can be missed several times in one session; each one counts,
+      // because struggling with it repeatedly in one sitting is the signal.
+      misses: (existing?.misses ?? 0) + 1,
+      lastMissedDay: today,
+    });
+  }
+
+  return [...merged.values()].sort(
+    (a, b) => b.misses - a.misses || a.word.localeCompare(b.word),
+  );
+}
+
+/** The words worth telling the learner about, hardest first. */
+export function soundsToPractise(known: readonly TroubleRecord[], limit = 3): string[] {
+  return known
+    .filter((record) => record.misses >= TROUBLE_THRESHOLD)
+    .slice(0, limit)
+    .map((record) => record.word);
+}
+
+/** Day arithmetic on `YYYY-MM-DD`, kept local so this module stays pure. */
+function shiftDay(day: string, days: number): string {
+  const [year, month, date] = day.split("-").map(Number);
+  const shifted = new Date(year!, (month ?? 1) - 1, (date ?? 1) + days);
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${shifted.getFullYear()}-${pad(shifted.getMonth() + 1)}-${pad(shifted.getDate())}`;
+}

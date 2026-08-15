@@ -88,4 +88,15 @@ export type AccountProfile = {
   textScale: "normal" | "large";
 };
 
+/**
+ * A word this learner keeps failing to get across (§9.2), kept between
+ * sessions so the app can tell a bad take from a habit.
+ */
+export type StoredTroubleWord = {
+  accountId: AccountId;
+  word: string;
+  misses: number;
+  lastMissedDay: string;
+};
+
 export type StoreName = "days" | "streaks" | "profiles";

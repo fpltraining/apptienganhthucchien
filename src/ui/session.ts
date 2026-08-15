@@ -8,7 +8,12 @@
  */
 
 import type { AccountId } from "../data/schema";
-import { completeSession, loadDeck, saveCards } from "../data/repository";
+import {
+  completeSession,
+  loadDeck,
+  recordTroubleWords,
+  saveCards,
+} from "../data/repository";
 import type { ReviewCard } from "../domain/srs";
 import type { StreakEvent } from "../domain/streak";
 import {
@@ -38,7 +43,6 @@ import {
   runVocabularyBlock,
 } from "./blocks";
 import type { BlockContext } from "./blocks";
-import { troubleWords } from "../domain/pronunciation";
 import type { PronunciationScore } from "../domain/pronunciation";
 
 export type SessionOutcome = {
@@ -254,8 +258,15 @@ export async function runSession(
   const minutes = activeMinutes(state);
   const { events, advancedToWeek } = await completeSession(accountId, tierFor(state), minutes);
 
+  // The durable list, not just today's: a word missed once is a bad take, a
+  // word missed across weeks is the thing to practise (§9.2).
+  const practise = await recordTroubleWords(
+    accountId,
+    scored.flatMap((attempt) => attempt.missed),
+  );
+
   await new Promise<void>((resolve) => {
-    renderSummary(root, state.results, minutes, resolve, troubleWords(scored), advancedToWeek);
+    renderSummary(root, state.results, minutes, resolve, practise, advancedToWeek);
   });
 
   return { recorded: true, events };

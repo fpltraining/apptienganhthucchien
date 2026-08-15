@@ -17,6 +17,8 @@ import {
   putDay,
   putProfile,
   putStreak,
+  getTroubleWords,
+  putTroubleWords,
 } from "./db";
 import { createCard } from "../domain/srs";
 import type { ReviewCard } from "../domain/srs";
@@ -24,6 +26,7 @@ import { getWeek } from "../content";
 import { addDays, toDayKey } from "../domain/dates";
 import { createStreakState, recordSession, settle, weeklyProgress } from "../domain/streak";
 import { recordSessionForWeek } from "../domain/progression";
+import { mergeTroubleWords, soundsToPractise } from "../domain/pronunciation";
 import type { StreakEvent } from "../domain/streak";
 
 export type AccountSummary = {
@@ -222,6 +225,36 @@ export async function loadDeck(
 
   if (created.length > 0) await putCards(created);
   return [...existing, ...created];
+}
+
+/**
+ * Folds a session's missed words into what this account already knew, and
+ * returns the sounds worth naming (§9.2).
+ *
+ * Done here rather than in the session runner so the merge, the ageing-out and
+ * the write are one step: a session that ended halfway through that would
+ * leave the list in a state no rule produced.
+ */
+export async function recordTroubleWords(
+  accountId: AccountId,
+  missed: readonly string[],
+  now = new Date(),
+): Promise<string[]> {
+  const today = toDayKey(now);
+  const known = await getTroubleWords(accountId);
+
+  const merged = mergeTroubleWords(
+    known.map(({ word, misses, lastMissedDay }) => ({ word, misses, lastMissedDay })),
+    missed,
+    today,
+  );
+
+  await putTroubleWords(
+    accountId,
+    merged.map((record) => ({ accountId, ...record })),
+  );
+
+  return soundsToPractise(merged);
 }
 
 export async function saveCards(cards: readonly ReviewCard[]): Promise<void> {

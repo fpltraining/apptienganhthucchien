@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { feedbackFor, normalise, scoreAttempt, troubleWords } from "./pronunciation";
+import {
+  feedbackFor,
+  mergeTroubleWords,
+  normalise,
+  scoreAttempt,
+  soundsToPractise,
+  troubleWords,
+} from "./pronunciation";
 
 describe("normalise", () => {
   it("treats contractions as the same word", () => {
@@ -93,5 +100,61 @@ describe("troubleWords", () => {
       { score: 50, missed: ["three"], confidence: "normal" as const },
     ];
     expect(troubleWords(attempts)[0]).toBe("three");
+  });
+});
+
+describe("mergeTroubleWords", () => {
+  it("counts a word up across sessions", () => {
+    let known = mergeTroubleWords([], ["three"], "2026-03-02");
+    known = mergeTroubleWords(known, ["three"], "2026-03-03");
+    expect(known[0]).toEqual({ word: "three", misses: 2, lastMissedDay: "2026-03-03" });
+  });
+
+  it("counts every miss within one session", () => {
+    // Struggling with the same word three times in one sitting is the signal,
+    // not an accident to be de-duplicated away.
+    const known = mergeTroubleWords([], ["three", "three", "three"], "2026-03-02");
+    expect(known[0]?.misses).toBe(3);
+  });
+
+  it("drops a word that has not come up inside the window", () => {
+    // A word fixed two months ago must not keep sending the learner back to
+    // practise something they can already say.
+    const stale = [{ word: "three", misses: 9, lastMissedDay: "2026-01-01" }];
+    expect(mergeTroubleWords(stale, [], "2026-03-02")).toEqual([]);
+  });
+
+  it("keeps a word that came up recently", () => {
+    const recent = [{ word: "three", misses: 4, lastMissedDay: "2026-02-25" }];
+    expect(mergeTroubleWords(recent, [], "2026-03-02")).toHaveLength(1);
+  });
+
+  it("puts the most persistent word first", () => {
+    const known = mergeTroubleWords(
+      [
+        { word: "street", misses: 2, lastMissedDay: "2026-03-01" },
+        { word: "three", misses: 6, lastMissedDay: "2026-03-01" },
+      ],
+      [],
+      "2026-03-02",
+    );
+    expect(known.map((record) => record.word)).toEqual(["three", "street"]);
+  });
+});
+
+describe("soundsToPractise", () => {
+  it("names a word only once it is a pattern", () => {
+    const known = [{ word: "three", misses: 2, lastMissedDay: "2026-03-02" }];
+    expect(soundsToPractise(known)).toEqual([]);
+    expect(soundsToPractise([{ ...known[0]!, misses: 3 }])).toEqual(["three"]);
+  });
+
+  it("shows at most three, so it reads as a hint not a report card", () => {
+    const many = ["a", "b", "c", "d", "e"].map((word) => ({
+      word,
+      misses: 5,
+      lastMissedDay: "2026-03-02",
+    }));
+    expect(soundsToPractise(many)).toHaveLength(3);
   });
 });
