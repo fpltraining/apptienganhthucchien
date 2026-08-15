@@ -21,7 +21,8 @@ import type { BlockResult } from "../domain/session";
 import type { ReviewCard } from "../domain/srs";
 import { buildDailyQueue, reviewCard } from "../domain/srs";
 import type { WeekContent } from "../content/types";
-import { findVocabItem, getTurn, matchBranch } from "../content";
+import { advanceRoleplay, findVocabItem, getTurn, hintsToShow } from "../content";
+import type { RoleplayProgress, RoleplayTurn } from "../content";
 import { el } from "./dom";
 import {
   RESPONSE_DEADLINE_MS,
@@ -470,6 +471,7 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
   const script = context.week.roleplay;
   let turnId: string | null = script.startTurnId;
   let turnsTaken = 0;
+  const progress: RoleplayProgress = { surpriseUsed: false };
 
   while (turnId) {
     const turn = getTurn(script, turnId);
@@ -480,7 +482,7 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
     if (said.spoken) correct++;
     if (said.latencyMs > 0) latencies.push(said.latencyMs);
 
-    turnId = matchBranch(turn, said.transcript);
+    turnId = advanceRoleplay(script, turn, said.transcript, progress);
     turnsTaken++;
     // A script that loops on itself would trap the learner in the block.
     if (turnsTaken > script.turns.length * 2) break;
@@ -498,11 +500,16 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
 
 async function runRoleplayTurn(
   context: BlockContext,
-  turn: { say: string; sayVi: string; hints: string[] },
+  turn: RoleplayTurn,
   index: number,
 ): Promise<{ spoken: boolean; latencyMs: number; transcript: string }> {
+  // From week 12 this is a couple of keywords rather than the whole sentence,
+  // and later still it is nothing at all. The Vietnamese gloss of what the
+  // other person just said stays at every level — that is comprehension help,
+  // not a crutch for producing the reply.
+  const shown = hintsToShow(context.week.roleplay, turn);
   const hintBox = el("div", { class: "hints", hidden: true }, [
-    ...turn.hints.map((hint) => el("p", { class: "hints__line" }, [hint])),
+    ...shown.map((hint) => el("p", { class: "hints__line" }, [hint])),
     el("p", { class: "hints__vi" }, [turn.sayVi]),
   ]);
 

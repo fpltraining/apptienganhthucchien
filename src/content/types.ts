@@ -94,6 +94,25 @@ export type RoleplayScript = {
   goalVi: string;
   startTurnId: string;
   turns: RoleplayTurn[];
+  /**
+   * How much of a hint to show — the scaffolding comes away as the phases go on
+   * (§ giai đoạn 2: weeks 9–11 whole sentences, 12–14 keywords, 15–17 nothing).
+   *
+   * `hints` always holds whole sentences whatever this says. They are the
+   * tappable replies when the microphone is unavailable, and a learner cannot
+   * tap "gate" to mean "has the gate changed?". This setting governs the hint
+   * panel only.
+   */
+  hintLevel?: "sentence" | "keyword" | "none";
+  /**
+   * A turn the other person may divert to instead of the scripted one, from
+   * week 12 (§ giai đoạn 2: 20% khả năng lệch kịch bản).
+   *
+   * Taken at most once per conversation, and it must lead back into the script
+   * — the point is that something unexpected happens and the conversation
+   * carries on, not that the learner is dropped somewhere new.
+   */
+  surpriseTurnId?: string;
 };
 
 export type WeekContent = {
