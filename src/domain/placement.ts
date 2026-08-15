@@ -83,10 +83,18 @@ export function startWeekForTrack(track: Track): number {
 
 /** Opening playback speed by listening ability (§5.2). */
 export function audioRateForListening(listeningScore: number): number {
-  if (listeningScore < 30) return 0.75;
-  if (listeningScore < 55) return 0.85;
+  // The floor is 0.85, not 0.75. Slower than that stops being an easier version
+  // of English and becomes a different thing to learn: the linking and stress
+  // that carry real speech flatten out, so the learner practises hearing
+  // something nobody actually says, then meets natural speed with no ear for
+  // it. A beginner needs the shape of real speech and more repetitions of it,
+  // not a recording dragged out.
+  if (listeningScore < 30) return 0.85;
+  if (listeningScore < 55) return 0.95;
   if (listeningScore < 75) return 1.0;
-  return 1.1;
+  // Phase 3 targets 1.15 (§giai đoạn 3); a strong ear starts most of the way
+  // there.
+  return 1.15;
 }
 
 export function scorePlacement(scores: PlacementScores): PlacementResult {

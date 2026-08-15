@@ -14,6 +14,8 @@
  * different thing entirely.
  */
 
+import { playClip, stopClip } from "./recorded-speech";
+
 export type SpeakOptions = {
   /** Playback rate; the listening block raises this as the ear improves. */
   rate?: number;
@@ -76,7 +78,25 @@ export function micSupported(): boolean {
  * outside a user gesture, must not take the lesson down with it. The learner
  * still has the text on screen.
  */
-export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+/**
+ * Says a line aloud.
+ *
+ * Prefers the recorded voice and falls back to the device's own. The fallback
+ * is not a nicety: on a device where the recording will not play, or for a line
+ * that has not been generated yet, silence would leave the learner staring at a
+ * phrase with no idea how it sounds.
+ */
+export async function speak(text: string, options: SpeakOptions = {}): Promise<void> {
+  const played = await playClip(text, {
+    ...(options.lang === undefined ? {} : { lang: options.lang }),
+    ...(options.rate === undefined ? {} : { rate: options.rate }),
+  });
+  if (played) return;
+
+  return speakSynthesised(text, options);
+}
+
+function speakSynthesised(text: string, options: SpeakOptions = {}): Promise<void> {
   if (!speechSupported() || !hasEnglishVoice()) return Promise.resolve();
 
   return new Promise((resolve) => {
@@ -110,6 +130,7 @@ export function speak(text: string, options: SpeakOptions = {}): Promise<void> {
 }
 
 export function stopSpeaking(): void {
+  stopClip();
   if (speechSupported()) {
     try {
       window.speechSynthesis.cancel();

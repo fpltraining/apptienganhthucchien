@@ -26,6 +26,14 @@ describe("weightedTotal", () => {
       weightedTotal({ pronunciation: 0, listening: 0, speaking: 0, communication: 100 }),
     ).toBe(20);
   });
+
+  it("never drags speech below 0.85", () => {
+    // Below that the linking and stress of real speech flatten out, and the
+    // learner practises hearing something nobody says.
+    for (const score of [0, 10, 29, 30, 54, 75, 100]) {
+      expect(audioRateForListening(score)).toBeGreaterThanOrEqual(0.85);
+    }
+  });
 });
 
 describe("trackForScore", () => {
@@ -71,10 +79,10 @@ describe("scorePlacement", () => {
   });
 
   it("opens at a playback speed the learner can follow", () => {
-    expect(audioRateForListening(10)).toBe(0.75);
-    expect(audioRateForListening(45)).toBe(0.85);
+    expect(audioRateForListening(10)).toBe(0.85);
+    expect(audioRateForListening(45)).toBe(0.95);
     expect(audioRateForListening(60)).toBe(1.0);
-    expect(audioRateForListening(90)).toBe(1.1);
+    expect(audioRateForListening(90)).toBe(1.15);
   });
 });
 

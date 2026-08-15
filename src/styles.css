@@ -797,3 +797,39 @@ button {
 .block > .stack:last-child {
   margin-top: auto;
 }
+
+/* --- larger screens --------------------------------------------------------
+   Account 2 studies on an iPad. The column stays a column — one job per screen
+   is the point, and a two-column lesson would give the eye somewhere else to
+   be — but a phone layout stranded in the middle of a 11" screen reads as an
+   app that was not meant for the device. So the measure widens a little and
+   everything scales up, because an iPad sits further away than a phone. */
+
+@media (min-width: 46rem) {
+  :root {
+    --step--1: 1.0625rem;
+    --step-0: 1.3125rem;
+    --step-1: 1.625rem;
+    --step-2: 2rem;
+    --step-3: 2.5rem;
+    --step-4: 3.5rem;
+    --tap: 4rem;
+    --gap: 1.25rem;
+  }
+
+  #app {
+    padding: calc(var(--safe-top) + 3rem) 2rem calc(var(--safe-bottom) + 3rem);
+  }
+
+  .home,
+  .block,
+  .picker {
+    max-width: 40rem;
+  }
+
+  /* Two accounts side by side already; give them room to be tappable targets
+     rather than stretched cards. */
+  .tile {
+    min-height: 15rem;
+  }
+}
