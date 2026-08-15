@@ -25,13 +25,15 @@ const weeks: WeekContent[] = availableWeeks().map((week) => getWeek(week));
 
 describe("the library", () => {
   it("covers every written week without gaps", () => {
-    expect(availableWeeks()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
+    expect(availableWeeks()).toEqual([
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+    ]);
   });
 
   it("hands a learner past the end the last week, not the first", () => {
     // Placement track D starts at week 9 (§4.4); once content runs out again
     // the learner repeats the last week rather than restarting at greetings.
-    expect(getWeek(26).week).toBe(14);
+    expect(getWeek(26).week).toBe(16);
   });
 
   it("takes the scaffolding away on the curriculum's schedule", () => {
@@ -41,6 +43,9 @@ describe("the library", () => {
     }
     for (const week of [12, 13, 14]) {
       expect(getWeek(week).roleplay.hintLevel).toBe("keyword");
+    }
+    for (const week of [15, 16]) {
+      expect(getWeek(week).roleplay.hintLevel).toBe("none");
     }
   });
 
@@ -194,22 +199,32 @@ describe.each(weeks.map((week) => [week.week, week] as const))("week %i", (_numb
       }
     });
 
-    it("keeps whole sentences behind a keyword hint level", () => {
-      // The hint panel may show two words, but `hints` must stay speakable:
-      // they are the tappable replies when the microphone is unavailable, and
-      // nobody can tap "gate" to mean "has the gate changed?".
-      if ((script.hintLevel ?? "sentence") !== "keyword") return;
-
+    it("stores hints as speakable replies whatever the hint level", () => {
+      // The panel may show two words or nothing at all, but `hints` itself must
+      // stay written out: they double as the tappable replies when the
+      // microphone is unavailable, and nobody can tap "gate" to mean "has the
+      // gate changed?". This holds at every level, including "none".
       for (const turn of script.turns) {
         for (const hint of turn.hints) {
-          // Written out as a reply, punctuation and all — not a keyword list.
           expect(hint, `"${hint}" is not written out`).toMatch(/[.?!]$/);
           expect(hint.length, `"${hint}" is too short to tap as a reply`).toBeGreaterThan(6);
         }
+      }
+    });
+
+    it("shows the panel content its hint level calls for", () => {
+      const level = script.hintLevel ?? "sentence";
+      for (const turn of script.turns) {
         const shown = hintsToShow(script, turn);
+        if (level === "none") {
+          expect(shown).toEqual([]);
+          continue;
+        }
         expect(shown.length).toBeGreaterThan(0);
-        for (const hint of shown) {
-          expect(hint.split(/\s+/).length).toBeLessThanOrEqual(3);
+        if (level === "keyword") {
+          for (const hint of shown) {
+            expect(hint.split(/\s+/).length).toBeLessThanOrEqual(3);
+          }
         }
       }
     });
