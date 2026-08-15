@@ -19,6 +19,9 @@
  * material is a truer maintenance than looping back to greetings.
  */
 
+import { checkpointAfter } from "./checkpoint";
+import type { CheckpointKind } from "./checkpoint";
+
 /** Sessions to complete before the next week's content opens (§10.4). */
 export const SESSIONS_PER_WEEK = 5;
 
@@ -35,6 +38,11 @@ export type Progress = {
 export type Advance = Progress & {
   /** True on the session that moved them up a week, for the summary screen. */
   advanced: boolean;
+  /**
+   * Set when finishing this week closes a phase, so the checkpoint is offered
+   * before the next week's content opens (§6).
+   */
+  checkpointDue: CheckpointKind | null;
 };
 
 /**
@@ -52,23 +60,39 @@ export function recordSessionForWeek(
   const week = clampWeek(progress.currentWeek);
 
   if (options.alreadyStudiedToday) {
-    return { currentWeek: week, sessionsThisWeek: progress.sessionsThisWeek, advanced: false };
+    return {
+      currentWeek: week,
+      sessionsThisWeek: progress.sessionsThisWeek,
+      advanced: false,
+      checkpointDue: null,
+    };
   }
 
   const sessions = progress.sessionsThisWeek + 1;
 
   if (sessions < SESSIONS_PER_WEEK) {
-    return { currentWeek: week, sessionsThisWeek: sessions, advanced: false };
+    return { currentWeek: week, sessionsThisWeek: sessions, advanced: false, checkpointDue: null };
   }
 
   if (week >= FINAL_WEEK) {
     // Finished the course. Hold at the final week and let the counter sit at
     // the target rather than rolling over to zero, so the screen does not
     // suggest there is a week 27 to work toward.
-    return { currentWeek: FINAL_WEEK, sessionsThisWeek: SESSIONS_PER_WEEK, advanced: false };
+    return {
+      currentWeek: FINAL_WEEK,
+      sessionsThisWeek: SESSIONS_PER_WEEK,
+      advanced: false,
+      // Finishing week 26 still owes Test C, which is the point of week 26.
+      checkpointDue: checkpointAfter(FINAL_WEEK)?.kind ?? null,
+    };
   }
 
-  return { currentWeek: week + 1, sessionsThisWeek: 0, advanced: true };
+  return {
+    currentWeek: week + 1,
+    sessionsThisWeek: 0,
+    advanced: true,
+    checkpointDue: checkpointAfter(week)?.kind ?? null,
+  };
 }
 
 function clampWeek(week: number): number {

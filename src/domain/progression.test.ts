@@ -14,6 +14,7 @@ describe("recordSessionForWeek", () => {
       currentWeek: 1,
       sessionsThisWeek: 1,
       advanced: false,
+      checkpointDue: null,
     });
   });
 
@@ -25,7 +26,12 @@ describe("recordSessionForWeek", () => {
     }
 
     const fifth = recordSessionForWeek(progress);
-    expect(fifth).toEqual({ currentWeek: 2, sessionsThisWeek: 0, advanced: true });
+    expect(fifth).toEqual({
+      currentWeek: 2,
+      sessionsThisWeek: 0,
+      advanced: true,
+      checkpointDue: null,
+    });
   });
 
   it("does not care how long the five sessions took", () => {
@@ -76,5 +82,27 @@ describe("hasFinishedCourse", () => {
     expect(hasFinishedCourse({ currentWeek: 26, sessionsThisWeek: 5 })).toBe(true);
     expect(hasFinishedCourse({ currentWeek: 26, sessionsThisWeek: 4 })).toBe(false);
     expect(hasFinishedCourse({ currentWeek: 25, sessionsThisWeek: 5 })).toBe(false);
+  });
+});
+
+describe("checkpoints", () => {
+  it("comes due on finishing the week that closes a phase (§6)", () => {
+    const endOfPhaseOne = { currentWeek: 8, sessionsThisWeek: SESSIONS_PER_WEEK - 1 };
+    expect(recordSessionForWeek(endOfPhaseOne).checkpointDue).toBe("A");
+
+    const endOfPhaseTwo = { currentWeek: 17, sessionsThisWeek: SESSIONS_PER_WEEK - 1 };
+    expect(recordSessionForWeek(endOfPhaseTwo).checkpointDue).toBe("B");
+  });
+
+  it("still owes Test C at the end of week 26", () => {
+    // Progression holds there rather than advancing, but holding is not the
+    // same as having nothing left to do.
+    const end = { currentWeek: FINAL_WEEK, sessionsThisWeek: SESSIONS_PER_WEEK - 1 };
+    expect(recordSessionForWeek(end).checkpointDue).toBe("C");
+  });
+
+  it("owes nothing in an ordinary week", () => {
+    const midPhase = { currentWeek: 3, sessionsThisWeek: SESSIONS_PER_WEEK - 1 };
+    expect(recordSessionForWeek(midPhase).checkpointDue).toBeNull();
   });
 });
