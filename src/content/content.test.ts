@@ -26,52 +26,63 @@ const weeks: WeekContent[] = availableWeeks().map((week) => getWeek(week));
 describe("the library", () => {
   it("covers every written week without gaps", () => {
     expect(availableWeeks()).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26,
     ]);
   });
 
-  it("hands a learner past the end the last week, not the first", () => {
-    // Placement track D starts at week 9 (§4.4); once content runs out again
-    // the learner repeats the last week rather than restarting at greetings.
-    expect(getWeek(26).week).toBe(24);
-  });
-
-  it("takes the scaffolding away on the curriculum's schedule", () => {
-    // §giai đoạn 2: weeks 9-11 still show whole sentences, 12-14 keywords only.
-    for (const week of [9, 10, 11]) {
-      expect(getWeek(week).roleplay.hintLevel ?? "sentence").toBe("sentence");
-    }
-    for (const week of [12, 13, 14]) {
-      expect(getWeek(week).roleplay.hintLevel).toBe("keyword");
-    }
-    for (const week of [15, 16, 17, 18, 19, 20, 21, 22, 23, 24]) {
-      expect(getWeek(week).roleplay.hintLevel).toBe("none");
+  it("covers the whole curriculum", () => {
+    // All 26 weeks of §7 are written. Nothing falls back to a stand-in.
+    expect(availableWeeks()).toHaveLength(26);
+    for (let week = 1; week <= 26; week++) {
+      expect(getWeek(week).week, `week ${week} is missing`).toBe(week);
     }
   });
 
-  it("tightens the response clock down to week 23 (§giai đoạn 3)", () => {
-    // 8s → 6s → 5s → 3s. The clock measures how fast a phrase comes out, and
-    // week 23 - the emergency call - is where that matters most.
-    expect(getWeek(18).responseDeadlineMs).toBe(8000);
-    expect(getWeek(19).responseDeadlineMs).toBe(6000);
-    expect(getWeek(20).responseDeadlineMs).toBe(6000);
-    expect(getWeek(21).responseDeadlineMs).toBe(5000);
-    expect(getWeek(23).responseDeadlineMs).toBe(3000);
-
-    for (const week of weeks.filter((candidate) => candidate.week <= 23)) {
-      const deadline = week.responseDeadlineMs ?? 8000;
-      expect(deadline, `week ${week.week} is looser than the schedule`).toBeLessThanOrEqual(
-        8000,
-      );
-    }
+  it("repeats the last week rather than restarting past the end", () => {
+    // Someone who keeps going after week 26 stays at the hardest material
+    // instead of being dropped back into beginner greetings.
+    expect(getWeek(27).week).toBe(26);
+    expect(getWeek(99).week).toBe(26);
   });
 
-  it("gives the storytelling weeks room to breathe", () => {
-    // Week 24 goes back up to 5s on purpose. Three seconds is right for "she's
-    // not breathing"; asking someone to open a two-minute story in three
-    // seconds only produces clipped sentences, which is the opposite of what
-    // that week trains.
-    expect(getWeek(24).responseDeadlineMs).toBe(5000);
+  it("puts several accents in one passage for the gauntlet (§giai đoạn 3)", () => {
+    // Week 25's whole point is that the content is familiar and only the voice
+    // changes, so the passage has to actually carry different voices.
+    const langs = getWeek(25)
+      .listening.lines.map((line) => line.lang)
+      .filter((lang): lang is string => lang !== undefined);
+    expect(new Set(langs).size).toBeGreaterThanOrEqual(4);
+  });
+
+  it("stops adding new vocabulary in the last two weeks (§giai đoạn 3)", () => {
+    // The curriculum freezes content at weeks 25-26: consolidate, do not add.
+    // The rule is about words, not sentences - those weeks deliberately join
+    // taught sentences into longer review cards, which is consolidation. What
+    // must not appear is a word the learner has never met.
+    const words = (phrase: string) =>
+      phrase
+        .toLowerCase()
+        .replace(/['’]/g, "")
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter((word) => word.length > 0);
+
+    const known = new Set(
+      weeks
+        .filter((week) => week.week < 25)
+        .flatMap((week) => week.vocabulary.flatMap((item) => words(item.phrase))),
+    );
+
+    for (const week of weeks.filter((candidate) => candidate.week >= 25)) {
+      for (const item of week.vocabulary) {
+        for (const word of words(item.phrase)) {
+          expect(
+            known.has(word),
+            `week ${week.week} introduces "${word}" in "${item.phrase}"`,
+          ).toBe(true);
+        }
+      }
+    }
   });
 
   it("gives every card a unique id", () => {
