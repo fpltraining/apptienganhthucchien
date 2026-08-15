@@ -1,24 +1,62 @@
-/* Type and target sizes are set for an older learner on a phone held at arm's
-   length: nothing below 17px, no tap target under 56px. */
+@import "./fonts.css";
+
+/* Sơn Mài — the interface system for this app.
+ *
+ * Three colours, taken from lacquerware rather than from a UI palette: lacquer
+ * black, son orange, warm grey. The orange is a true vermilion, not the muted
+ * terracotta every "warm" app reaches for, and the ground is a real grey rather
+ * than cream for the same reason — those are the defaults, and defaults are
+ * what make an interface look like it was assembled instead of designed.
+ *
+ * Orange is the only colour allowed to shout, and it says exactly two things:
+ * this is today's work, and this is your streak. Finished work is filled black,
+ * not green — a fourth colour is where this starts looking sentimental.
+ *
+ * There is no red anywhere. Missing a day is not an error state.
+ *
+ * Type and target sizes are set for a learner past sixty holding a phone at
+ * arm's length: nothing below 15px, body text at 18px, no tap target under
+ * 56px. Two faces, two languages — see fonts.css for why.
+ */
 
 :root {
-  --ink: #16232e;
-  --ink-soft: #55697a;
-  --paper: #f6f4ef;
-  --card: #ffffff;
-  --brand: #1b4965;
-  --brand-ink: #ffffff;
-  --flame: #e07a3f;
-  --line: #d9d3c8;
+  /* ink */
+  --ink: #17150f;        /* lacquer black, warm-biased — not a blue-black */
+  --ink-soft: #5c574e;   /* warm grey; browned so it sits beside the orange */
 
-  --step-0: 1.0625rem; /* 17px */
-  --step-1: 1.25rem;
-  --step-2: 1.5rem;
+  /* ground */
+  --paper: #edebe6;      /* page: a grey that is grey, not cream */
+  --card: #ffffff;       /* content sits on white for maximum contrast */
+  --line: #d8d3c9;
+
+  /* son */
+  --flame: #e05221;      /* fills, streak, today's work */
+  --flame-ink: #a8360d;  /* the same orange as text: 7:1 on white */
+  --flame-wash: #fbeae1; /* the only tint, for the streak strip */
+  --flame-edge: #f0cdb9;
+
+  /* the primary button is black, not orange: orange marks what is live, and a
+     button that is always there is not news. */
+  --brand: #17150f;
+  --brand-ink: #ffffff;
+
+  /* Vietnamese: everything the app says. */
+  --font-vi: "Be Vietnam Pro", "SF Pro Text", -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  /* English: only the phrases being learned, so they are never mistaken for
+     instructions. */
+  --font-en: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+
+  --step--1: 0.9375rem; /* 15px — the floor, notes only */
+  --step-0: 1.125rem;   /* 18px — body */
+  --step-1: 1.375rem;
+  --step-2: 1.625rem;
   --step-3: 2rem;
   --step-4: 2.75rem;
 
   --gap: 1rem;
-  --radius: 1.25rem;
+  /* 8px, not the 20px that makes every card look like the same template. */
+  --radius: 0.5rem;
   --tap: 3.5rem; /* 56px */
 
   --safe-top: env(safe-area-inset-top, 0px);
@@ -39,9 +77,7 @@ body {
 body {
   background: var(--paper);
   color: var(--ink);
-  font-family:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, "Helvetica Neue",
-    sans-serif;
+  font-family: var(--font-vi);
   font-size: var(--step-0);
   line-height: 1.5;
   /* Standalone PWAs have no pull-to-refresh to preserve, and rubber-banding
@@ -105,7 +141,6 @@ button {
   background: var(--card);
   border: 2px solid var(--line);
   border-radius: var(--radius);
-  box-shadow: 0 2px 0 rgb(22 35 46 / 6%);
   transition:
     transform 120ms ease,
     border-color 120ms ease;
@@ -233,10 +268,10 @@ button {
 .notice {
   margin: 0;
   padding: 0.875rem 1rem;
-  border-radius: 0.875rem;
-  background: #fdf3e7;
-  border: 1px solid #f0d9be;
-  color: #6b4a24;
+  border-radius: var(--radius);
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  color: var(--flame-ink);
 }
 
 /* --- session blocks -------------------------------------------------------- */
@@ -295,6 +330,20 @@ button {
   font-size: var(--step-3);
   font-weight: 700;
   line-height: 1.25;
+}
+
+/* The English being learned, in the other voice. A production card prompts in
+   Vietnamese and a recognition card prompts in English through this same
+   element, so the face is switched by modifier rather than by selector — one
+   of them would otherwise be set in the wrong language's type. */
+.card__prompt--en,
+.card__answer--en,
+.dialogue__say,
+.hints__line,
+.btn--choice--en {
+  font-family: var(--font-en);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .card__answer {
@@ -364,20 +413,31 @@ button {
 
 /* The chosen and correct answers stay legible after the buttons disable, so a
    wrong answer is something the learner can actually learn from. */
+/* Right and wrong are shown without green and red. Black filled is "this is
+   the answer" — the same fill that marks finished work everywhere else — and
+   the learner's own wrong pick is outlined in orange, meaning "look here",
+   not "you failed". An older learner meeting a red panel reads it as being
+   told off, and §9.3 spends its whole length avoiding exactly that. */
 .btn--choice.is-correct,
 .btn--choice.is-wrong {
   opacity: 1;
-  color: var(--brand-ink);
 }
 
 .btn--choice.is-correct {
-  background: #2e6b4f;
-  border-color: #2e6b4f;
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--brand-ink);
+}
+
+.btn--choice.is-correct::before {
+  content: "✓ ";
+  font-weight: 800;
 }
 
 .btn--choice.is-wrong {
-  background: #a4443a;
-  border-color: #a4443a;
+  background: var(--card);
+  border-color: var(--flame-ink);
+  color: var(--flame-ink);
 }
 
 .dialogue {
@@ -402,9 +462,9 @@ button {
 
 .hints {
   padding: 1rem 1.25rem;
-  background: #fdf3e7;
-  border: 1px solid #f0d9be;
-  border-radius: 0.875rem;
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  border-radius: var(--radius);
 }
 
 .hints[hidden] {
@@ -419,7 +479,7 @@ button {
 
 .hints__vi {
   margin: 0;
-  color: #6b4a24;
+  color: var(--flame-ink);
 }
 
 .plan {
@@ -431,4 +491,278 @@ button {
 
 .plan__item {
   margin-bottom: 0.5rem;
+}
+
+/* --- streak strip ----------------------------------------------------------
+   The one place the app could discourage someone into quitting, so it is built
+   to do the opposite: a count, a week of pips, and never a warning. A rest day
+   is hatched grey, not marked red — §10 treats it as a normal part of the
+   month, and the interface has to agree. */
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  border-radius: var(--radius);
+}
+
+.streak__num {
+  font-size: var(--step-3);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--flame-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.streak__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.streak__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.streak__note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.pips {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.pip {
+  width: 0.875rem;
+  height: 0.4rem;
+  border-radius: 2px;
+  background: #e4d9cf;
+}
+
+.pip--on {
+  background: var(--flame);
+}
+
+/* Hatched rather than coloured: a rest day is neither done nor missed. */
+.pip--rest {
+  background: repeating-linear-gradient(
+    45deg,
+    #e4d9cf 0 3px,
+    #f3eae3 3px 6px
+  );
+}
+
+/* --- today's four blocks ---------------------------------------------------
+   State is carried by shape as well as fill, so it survives being read quickly
+   or in bright sun: done is a filled black tick, now is a thick orange ring,
+   later is a thin grey outline. */
+
+.blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.blocks__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.blocks__item:last-child {
+  border-bottom: 0;
+}
+
+.blocks__dot {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--brand-ink);
+}
+
+.blocks__item[data-state="done"] .blocks__dot {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.blocks__item[data-state="now"] .blocks__dot {
+  border-color: var(--flame);
+  border-width: 3px;
+  background: var(--flame-wash);
+}
+
+.blocks__item[data-state="now"] .blocks__name {
+  font-weight: 700;
+}
+
+.blocks__mins {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- microphone ------------------------------------------------------------ */
+
+.mic {
+  display: grid;
+  place-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+
+.mic__ring {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--card);
+  display: grid;
+  place-items: center;
+}
+
+.mic[data-listening="true"] .mic__ring {
+  border-color: var(--flame);
+  background: var(--flame-wash);
+  box-shadow: 0 0 0 8px rgb(224 82 33 / 12%);
+}
+
+.mic__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 2.25rem;
+}
+
+.mic__bars i {
+  width: 4px;
+  height: 20%;
+  border-radius: 1px;
+  background: var(--ink-soft);
+  display: block;
+}
+
+.mic[data-listening="true"] .mic__bars i {
+  background: var(--flame-ink);
+  animation: mic-level 900ms ease-in-out infinite;
+}
+
+.mic__bars i:nth-child(2) { animation-delay: 120ms; }
+.mic__bars i:nth-child(3) { animation-delay: 240ms; }
+.mic__bars i:nth-child(4) { animation-delay: 60ms; }
+.mic__bars i:nth-child(5) { animation-delay: 300ms; }
+
+@keyframes mic-level {
+  0%, 100% { height: 25%; }
+  50% { height: 95%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic[data-listening="true"] .mic__bars i {
+    animation: none;
+    height: 60%;
+  }
+}
+
+.mic__state {
+  margin: 0;
+  font-weight: 650;
+}
+
+/* --- response clock --------------------------------------------------------
+   A bar that empties, not a number counting down. Phase 3 tightens this to
+   three seconds, and three red digits ticking at someone mid-sentence is the
+   surest way to make them lose the sentence. It runs out to grey, never red. */
+
+.clock__track {
+  height: 5px;
+  border-radius: 3px;
+  background: #e4d9cf;
+  overflow: hidden;
+}
+
+.clock__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--flame);
+  transform-origin: left center;
+}
+
+.clock[data-spent="true"] .clock__fill {
+  background: var(--line);
+}
+
+.clock__label {
+  margin: 0.35rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- card progress --------------------------------------------------------- */
+
+.progress-dots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.progress-dots i {
+  height: 0.3rem;
+  flex: 1;
+  border-radius: 2px;
+  background: #e0dad1;
+}
+
+.progress-dots i[data-state="done"] { background: var(--ink); }
+.progress-dots i[data-state="now"] { background: var(--flame); }
+
+/* --- spoken verdict --------------------------------------------------------
+   Words, not a number (§9.3). The rule stays in the CSS too: there is no
+   variant of this that turns red. */
+
+.verdict {
+  padding: 0.75rem 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink);
+  border-radius: var(--radius);
+  font-weight: 650;
+}
+
+.verdict[data-tone="close"] {
+  border-left-color: var(--flame);
+}
+
+.verdict__hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 400;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* --- focus -----------------------------------------------------------------
+   Visible on every focusable thing. Offset so it clears the button's own edge. */
+
+:focus-visible {
+  outline: 3px solid var(--flame-ink);
+  outline-offset: 3px;
 }
