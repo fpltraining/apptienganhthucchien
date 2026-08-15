@@ -1,7 +1,27 @@
 import { defineConfig } from "vite";
 import { VitePWA } from "vite-plugin-pwa";
 
+/**
+ * Where the app is served from.
+ *
+ * Root in development and on a domain of its own; a sub-path on GitHub Pages,
+ * which serves a project site at /<repo>/. Getting this wrong does not fail
+ * loudly — the page loads and every asset 404s — and it has to reach the
+ * manifest's `start_url` and `scope` as well as the asset URLs, or the
+ * installed icon opens a blank screen instead of the app.
+ *
+ * Always ends in a slash, because `start_url` and `navigateFallback` are built
+ * by appending to it.
+ */
+const base = withTrailingSlash(process.env.BASE_PATH ?? "/");
+
+function withTrailingSlash(path: string): string {
+  const prefixed = path.startsWith("/") ? path : `/${path}`;
+  return prefixed.endsWith("/") ? prefixed : `${prefixed}/`;
+}
+
 export default defineConfig({
+  base,
   plugins: [
     VitePWA({
       // The learner never sees an update prompt — new versions install silently
@@ -14,8 +34,8 @@ export default defineConfig({
         short_name: "Tiếng Anh",
         description: "Học tiếng Anh giao tiếp 45 phút mỗi ngày",
         lang: "vi",
-        start_url: "/",
-        scope: "/",
+        start_url: base,
+        scope: base,
         // Removes the Safari address bar, which is what makes it read as an app
         // rather than a web page (curriculum §16.3, item 1).
         display: "standalone",
@@ -38,7 +58,7 @@ export default defineConfig({
         // layer instead, so it can be evicted independently and never counts
         // against the shell's freshness.
         globPatterns: ["**/*.{js,css,html,woff2}", "icons/*.png"],
-        navigateFallback: "/index.html",
+        navigateFallback: `${base}index.html`,
         cleanupOutdatedCaches: true,
       },
       devOptions: { enabled: true, type: "module" },
