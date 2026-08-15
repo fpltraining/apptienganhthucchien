@@ -27,6 +27,12 @@ export type VocabItem = {
 export type ListeningLine = {
   speaker: string;
   text: string;
+  /**
+   * Voice for this one line, overriding the week's. Only the accent gauntlet
+   * needs it — a passage where each speaker has a different accent is the whole
+   * exercise, not decoration.
+   */
+  lang?: string;
 };
 
 export type ListeningQuestion = {
@@ -124,4 +130,23 @@ export type WeekContent = {
   listening: ListeningPassage;
   shadowing: ShadowingLine[];
   roleplay: RoleplayScript;
+  /**
+   * How long the learner gets to start answering (§giai đoạn 3, chế độ đồng hồ:
+   * 8s → 6s → 5s → 3s across weeks 18–23).
+   *
+   * Unset means the default eight seconds. This is pressure, not a pass mark:
+   * running out still records an attempt and the lesson carries on, because
+   * §9.3's rule that nothing gates the lesson does not stop applying in phase 3.
+   */
+  responseDeadlineMs?: number;
+  /**
+   * BCP-47 tag for the voice this week speaks with, e.g. "en-IN", "en-GB",
+   * "en-AU". Unset means the device default.
+   *
+   * The accent work (§giai đoạn 3) is what the curriculum calls the difference
+   * between understanding the app and understanding people. A device with no
+   * matching voice simply speaks in its own — an accent the learner cannot hear
+   * is not worth failing a lesson over.
+   */
+  voiceLang?: string;
 };

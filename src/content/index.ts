@@ -23,6 +23,10 @@ import { week13 } from "./week13";
 import { week14 } from "./week14";
 import { week15 } from "./week15";
 import { week16 } from "./week16";
+import { week17 } from "./week17";
+import { week18 } from "./week18";
+import { week19 } from "./week19";
+import { week20 } from "./week20";
 
 const WEEKS: readonly WeekContent[] = [
   week01,
@@ -41,6 +45,10 @@ const WEEKS: readonly WeekContent[] = [
   week14,
   week15,
   week16,
+  week17,
+  week18,
+  week19,
+  week20,
 ];
 
 export function getWeek(week: number): WeekContent {

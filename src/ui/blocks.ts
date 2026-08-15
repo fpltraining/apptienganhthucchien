@@ -25,7 +25,6 @@ import { advanceRoleplay, findVocabItem, getTurn, hintsToShow } from "../content
 import type { RoleplayProgress, RoleplayTurn } from "../content";
 import { el } from "./dom";
 import {
-  RESPONSE_DEADLINE_MS,
   listenForSpeechOnset,
   recognitionSupported,
   recognizeSpeech,
@@ -43,6 +42,13 @@ export type BlockContext = {
   audioRate: number;
   /** False when the microphone was refused; blocks fall back to tapping. */
   micReady: boolean;
+  /**
+   * How long to wait for the learner to start speaking, from the week's clock
+   * setting (§giai đoạn 3). Falls back to the eight-second default.
+   */
+  deadlineMs: number;
+  /** Voice for this week's speaker, when it has an accent to teach. */
+  voiceLang: string | undefined;
   /**
    * Called for every scored attempt, in any block, so the session can build the
    * trouble-word list (§9.2). Attempts we could not score are not reported:
@@ -90,6 +96,19 @@ function attemptFeedback(attempt: CapturedAttempt): string {
     return `${words} Chú ý: ${attempt.missed.slice(0, 2).join(", ")}`;
   }
   return words;
+}
+
+/**
+ * Playback settings for this week: speed from placement, voice from the week.
+ *
+ * Gathered in one place so every `speak` call in the file carries the accent —
+ * a week that teaches an Indian-English ear does not do it if half the audio
+ * comes out in the device default.
+ */
+function speakOptions(context: BlockContext): { rate: number; lang?: string } {
+  return context.voiceLang === undefined
+    ? { rate: context.audioRate }
+    : { rate: context.audioRate, lang: context.voiceLang };
 }
 
 function wait(ms: number): Promise<void> {
@@ -152,7 +171,7 @@ export async function runVocabularyBlock(
 
     // Recognition cards hear the phrase first; production cards must not, or
     // there is nothing left to produce.
-    if (!isProduction) await speak(item.phrase, { rate: context.audioRate });
+    if (!isProduction) await speak(item.phrase, speakOptions(context));
 
     const attempt = await captureAttempt(context, feedback, item.phrase);
     attempted++;
@@ -170,7 +189,7 @@ export async function runVocabularyBlock(
     feedback.textContent = attemptFeedback(attempt);
     // Always let them hear the model pronunciation after trying, which is the
     // "nghe lại giọng mẫu" habit §9.3 relies on.
-    await speak(item.phrase, { rate: context.audioRate });
+    await speak(item.phrase, speakOptions(context));
     await wait(400);
   }
 
@@ -212,7 +231,7 @@ async function captureAttempt(
   target?: string,
 ): Promise<CapturedAttempt> {
   if (context.micReady && target && recognitionSupported()) {
-    const heard = await recognizeSpeech();
+    const heard = await recognizeSpeech({ deadlineMs: context.deadlineMs });
     // A null answer means the recogniser is unavailable, so onset timing below
     // is still worth a try. A result with no words means the learner was
     // silent — asking them to wait through a second eight-second listen would
@@ -234,7 +253,7 @@ async function captureAttempt(
   }
 
   if (context.micReady) {
-    const heard = await listenForSpeechOnset();
+    const heard = await listenForSpeechOnset({ deadlineMs: context.deadlineMs });
     if (!heard.degraded) {
       return {
         spoken: heard.spoken,
@@ -264,7 +283,7 @@ async function captureAttempt(
         onclick: () =>
           resolve({
             spoken: false,
-            latencyMs: RESPONSE_DEADLINE_MS,
+            latencyMs: context.deadlineMs,
             pronunciationScore: null,
             missed: [],
           }),
@@ -294,7 +313,11 @@ export async function runListeningBlock(context: BlockContext): Promise<BlockRes
 
   const playAll = async (rate: number) => {
     for (const line of passage.lines) {
-      await speak(line.text, { rate });
+      // A line may carry its own accent, overriding the week's. That is the
+      // whole exercise in the accent gauntlet, where each speaker sounds
+      // different and the content is deliberately familiar.
+      const lang = line.lang ?? context.voiceLang;
+      await speak(line.text, lang === undefined ? { rate } : { rate, lang });
       await wait(180);
     }
   };
@@ -457,7 +480,7 @@ export async function runSpeakingBlock(context: BlockContext): Promise<BlockResu
       ]),
     );
 
-    await speak(line.text, { rate: context.audioRate });
+    await speak(line.text, speakOptions(context));
     const attempt = await captureAttempt(context, feedback, line.text);
     attempted++;
     latencies.push(attempt.latencyMs);
@@ -538,13 +561,13 @@ async function runRoleplayTurn(
     ]),
   );
 
-  await speak(turn.say, { rate: context.audioRate });
+  await speak(turn.say, speakOptions(context));
 
   // Recognition gives us the words needed to pick a branch. Where it is not
   // available, the learner taps the reply they said — a worse experience, but
   // the conversation still moves.
   if (context.micReady && recognitionSupported()) {
-    const heard = await recognizeSpeech();
+    const heard = await recognizeSpeech({ deadlineMs: context.deadlineMs });
     if (heard && heard.transcript.length > 0) {
       feedback.textContent = `Bạn nói: "${heard.transcript}"`;
       await wait(700);
@@ -627,7 +650,7 @@ export async function runReviewBlock(
     if (attempt.spoken) correct++;
 
     feedback.textContent = item.phrase;
-    await speak(item.phrase, { rate: context.audioRate });
+    await speak(item.phrase, speakOptions(context));
     await wait(400);
   }
 
@@ -696,14 +719,14 @@ export async function runFreeTalkBlock(
       ]),
     );
 
-    await speak(reply.text, { rate: context.audioRate });
+    await speak(reply.text, speakOptions(context));
 
     let userText = "";
     let heardSomething = false;
-    let latency = RESPONSE_DEADLINE_MS;
+    let latency = context.deadlineMs;
 
     if (context.micReady && recognitionSupported()) {
-      const heard = await recognizeSpeech();
+      const heard = await recognizeSpeech({ deadlineMs: context.deadlineMs });
       if (heard) {
         userText = heard.transcript;
         heardSomething = heard.spoken;

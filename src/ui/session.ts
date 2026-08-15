@@ -23,7 +23,12 @@ import {
 } from "../domain/session";
 import type { BlockResult } from "../domain/session";
 import { getWeek } from "../content";
-import { closeMic, primeMicrophone, stopSpeaking } from "../platform/speech";
+import {
+  RESPONSE_DEADLINE_MS,
+  closeMic,
+  primeMicrophone,
+  stopSpeaking,
+} from "../platform/speech";
 import { el, mount } from "./dom";
 import {
   runFreeTalkBlock,
@@ -159,6 +164,10 @@ export async function runSession(
     week,
     audioRate: options.audioRate,
     micReady,
+    // The clock tightens across phase 3 (8s → 3s); weeks that set no deadline
+    // keep the default.
+    deadlineMs: week.responseDeadlineMs ?? RESPONSE_DEADLINE_MS,
+    voiceLang: week.voiceLang,
     onAttemptScored: (attempt) => {
       if (attempt.pronunciationScore === null) return;
       scored.push({

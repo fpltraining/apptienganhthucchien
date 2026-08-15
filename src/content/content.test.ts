@@ -26,14 +26,14 @@ const weeks: WeekContent[] = availableWeeks().map((week) => getWeek(week));
 describe("the library", () => {
   it("covers every written week without gaps", () => {
     expect(availableWeeks()).toEqual([
-      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,
+      1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20,
     ]);
   });
 
   it("hands a learner past the end the last week, not the first", () => {
     // Placement track D starts at week 9 (§4.4); once content runs out again
     // the learner repeats the last week rather than restarting at greetings.
-    expect(getWeek(26).week).toBe(16);
+    expect(getWeek(26).week).toBe(20);
   });
 
   it("takes the scaffolding away on the curriculum's schedule", () => {
@@ -44,8 +44,22 @@ describe("the library", () => {
     for (const week of [12, 13, 14]) {
       expect(getWeek(week).roleplay.hintLevel).toBe("keyword");
     }
-    for (const week of [15, 16]) {
+    for (const week of [15, 16, 17, 18, 19, 20]) {
       expect(getWeek(week).roleplay.hintLevel).toBe("none");
+    }
+  });
+
+  it("tightens the response clock across phase 3 (§giai đoạn 3)", () => {
+    // 8s → 6s, on its way to 3s by week 23. Never looser than the week before.
+    expect(getWeek(18).responseDeadlineMs).toBe(8000);
+    expect(getWeek(19).responseDeadlineMs).toBe(6000);
+    expect(getWeek(20).responseDeadlineMs).toBe(6000);
+
+    let previous = Number.POSITIVE_INFINITY;
+    for (const week of weeks) {
+      const deadline = week.responseDeadlineMs ?? 8000;
+      expect(deadline, `week ${week.week} loosens the clock`).toBeLessThanOrEqual(previous);
+      previous = deadline;
     }
   });
 
