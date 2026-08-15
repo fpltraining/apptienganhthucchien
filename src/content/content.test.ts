@@ -25,13 +25,13 @@ const weeks: WeekContent[] = availableWeeks().map((week) => getWeek(week));
 
 describe("the library", () => {
   it("covers every written week without gaps", () => {
-    expect(availableWeeks()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    expect(availableWeeks()).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]);
   });
 
   it("hands a learner past the end the last week, not the first", () => {
     // Placement track D starts at week 9 (§4.4); once content runs out again
     // the learner repeats the last week rather than restarting at greetings.
-    expect(getWeek(26).week).toBe(12);
+    expect(getWeek(26).week).toBe(14);
   });
 
   it("takes the scaffolding away on the curriculum's schedule", () => {
@@ -39,7 +39,9 @@ describe("the library", () => {
     for (const week of [9, 10, 11]) {
       expect(getWeek(week).roleplay.hintLevel ?? "sentence").toBe("sentence");
     }
-    expect(getWeek(12).roleplay.hintLevel).toBe("keyword");
+    for (const week of [12, 13, 14]) {
+      expect(getWeek(week).roleplay.hintLevel).toBe("keyword");
+    }
   });
 
   it("gives every card a unique id", () => {
