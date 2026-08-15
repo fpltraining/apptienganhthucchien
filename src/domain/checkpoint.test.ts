@@ -4,7 +4,9 @@ import {
   EXTRA_WEEKS_ON_FAIL,
   checkpointAfter,
   judgeCheckpoint,
+  draw,
   outcomeMessageVi,
+  weeksCovered,
 } from "./checkpoint";
 
 const testA = CHECKPOINTS[0]!;
@@ -105,5 +107,37 @@ describe("outcomeMessageVi", () => {
       extraWeeks: 0,
     });
     expect(message).toContain("26 tuần");
+  });
+});
+
+describe("weeksCovered", () => {
+  it("covers the phase the test closes, not the whole course", () => {
+    expect(weeksCovered(testA)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    expect(weeksCovered(testB)[0]).toBe(9);
+    expect(weeksCovered(testB).at(-1)).toBe(17);
+    expect(weeksCovered(CHECKPOINTS[2]!)[0]).toBe(18);
+  });
+});
+
+describe("draw", () => {
+  it("never repeats an item", () => {
+    const picked = draw([1, 2, 3, 4, 5], 5, () => 0.99);
+    expect(new Set(picked).size).toBe(5);
+  });
+
+  it("takes what there is when the pool is short", () => {
+    // A short pool must not hang or pad with undefined.
+    expect(draw([1, 2], 10, () => 0)).toEqual([1, 2]);
+  });
+
+  it("draws rather than always giving the same items", () => {
+    // A checkpoint the learner could revise for would measure their memory of
+    // twenty specific phrases, not the phase.
+    const pool = Array.from({ length: 40 }, (_, index) => index);
+    let seed = 0;
+    const next = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+    const first = draw(pool, 20, next);
+    const second = draw(pool, 20, next);
+    expect(first).not.toEqual(second);
   });
 });

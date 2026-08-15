@@ -1,7 +1,19 @@
 import "fake-indexeddb/auto";
 import { beforeEach, describe, expect, it } from "vitest";
-import { completeSession, loadAccount, recordTroubleWords } from "./repository";
-import { getDaysBetween, resetDbForTests } from "./db";
+import {
+  completeSession,
+  loadAccount,
+  recordTroubleWords,
+  settleCheckpoint,
+} from "./repository";
+import { getDaysBetween, putProfile, resetDbForTests } from "./db";
+import type { AccountProfile } from "./schema";
+
+/** Puts an account at a given point in the course without playing it there. */
+async function seedProfile(overrides: Partial<AccountProfile>): Promise<void> {
+  const { summary } = await loadAccount("acc1");
+  await putProfile({ ...summary.profile, ...overrides });
+}
 
 beforeEach(async () => {
   resetDbForTests();
@@ -172,5 +184,55 @@ describe("trouble words", () => {
   it("keeps the two accounts' sounds apart", async () => {
     await recordTroubleWords("acc1", ["three", "three", "three"], day(0));
     expect(await recordTroubleWords("acc2", [], day(0))).toEqual([]);
+  });
+});
+
+describe("checkpoints", () => {
+  const finishWeek = async (times: number, from = new Date(2026, 2, 2)) => {
+    let last;
+    for (let index = 0; index < times; index += 1) {
+      const day = new Date(from);
+      day.setDate(day.getDate() + index);
+      last = await completeSession("acc1", "full", 45, day);
+    }
+    return last!;
+  };
+
+  it("owes Test A once week 8 is finished", async () => {
+    await seedProfile({ currentWeek: 8, sessionsThisWeek: 4 });
+    expect((await finishWeek(1)).checkpointDue).toBe("A");
+    expect((await loadAccount("acc1")).summary.profile.pendingCheckpoint).toBe("A");
+  });
+
+  it("keeps owing it if the learner studies on without taking it", async () => {
+    await seedProfile({ currentWeek: 8, sessionsThisWeek: 4 });
+    await finishWeek(1);
+    // Studying again must not quietly clear a debt that was never paid.
+    expect((await finishWeek(3, new Date(2026, 2, 4))).checkpointDue).toBe("A");
+  });
+
+  it("clears the debt and stays put on a pass", async () => {
+    await seedProfile({ currentWeek: 9, sessionsThisWeek: 2, pendingCheckpoint: "A" });
+    await settleCheckpoint("acc1", true, 0);
+    const { summary } = await loadAccount("acc1");
+    expect(summary.profile.pendingCheckpoint).toBeNull();
+    expect(summary.profile.currentWeek).toBe(9);
+  });
+
+  it("drops back two weeks on a fail, and clears the debt", async () => {
+    await seedProfile({ currentWeek: 9, sessionsThisWeek: 4, pendingCheckpoint: "A" });
+    await settleCheckpoint("acc1", false, 2);
+    const { summary } = await loadAccount("acc1");
+    // Not re-sat forever: a learner who fails once must be able to move on.
+    expect(summary.profile.pendingCheckpoint).toBeNull();
+    expect(summary.profile.currentWeek).toBe(7);
+    // And the banked sessions reset, or the two extra weeks would be skipped.
+    expect(summary.profile.sessionsThisWeek).toBe(0);
+  });
+
+  it("never drops below week 1", async () => {
+    await seedProfile({ currentWeek: 1, sessionsThisWeek: 0, pendingCheckpoint: "A" });
+    await settleCheckpoint("acc1", false, 2);
+    expect((await loadAccount("acc1")).summary.profile.currentWeek).toBe(1);
   });
 });

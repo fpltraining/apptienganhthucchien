@@ -74,6 +74,16 @@ export type AccountProfile = {
   /** Where in the 26 weeks this learner is: from placement, then progress. */
   currentWeek: number;
   /**
+   * A checkpoint owed but not yet taken (§6).
+   *
+   * Stored rather than derived from the week number because the learner must
+   * be able to close the app mid-test and be offered it again, and because
+   * after a fail the same week comes round twice.
+   *
+   * Optional: profiles written before checkpoints existed simply owe none.
+   */
+  pendingCheckpoint?: "A" | "B" | "C" | null;
+  /**
    * Sessions completed toward the current week; five opens the next one
    * (§10.4). Optional because profiles stored before week progression existed
    * do not have it — those learners start the count from zero rather than

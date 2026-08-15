@@ -27,6 +27,7 @@ import { addDays, toDayKey } from "../domain/dates";
 import { createStreakState, recordSession, settle, weeklyProgress } from "../domain/streak";
 import { recordSessionForWeek } from "../domain/progression";
 import { mergeTroubleWords, soundsToPractise } from "../domain/pronunciation";
+import type { CheckpointKind } from "../domain/checkpoint";
 import type { StreakEvent } from "../domain/streak";
 
 export type AccountSummary = {
@@ -127,7 +128,13 @@ export async function completeSession(
   tier: SessionTier,
   minutes: number,
   now = new Date(),
-): Promise<{ streak: StreakState; events: StreakEvent[]; advancedToWeek: number | null }> {
+): Promise<{
+  streak: StreakState;
+  events: StreakEvent[];
+  advancedToWeek: number | null;
+  /** A checkpoint owed before the next week's content opens (§6). */
+  checkpointDue: CheckpointKind | null;
+}> {
   const today = toDayKey(now);
   const existing = await getDay(accountId, today);
 
@@ -161,12 +168,17 @@ export async function completeSession(
     ...profile,
     currentWeek: advance.currentWeek,
     sessionsThisWeek: advance.sessionsThisWeek,
+    // An owed checkpoint is never overwritten by a later session: if the
+    // learner finished week 8 and then studied again without taking Test A,
+    // they still owe Test A.
+    pendingCheckpoint: profile.pendingCheckpoint ?? advance.checkpointDue,
   });
 
   return {
     streak: state,
     events,
     advancedToWeek: advance.advanced ? advance.currentWeek : null,
+    checkpointDue: profile.pendingCheckpoint ?? advance.checkpointDue,
   };
 }
 
@@ -235,6 +247,29 @@ export async function loadDeck(
  * the write are one step: a session that ended halfway through that would
  * leave the list in a state no rule produced.
  */
+/**
+ * Records how a checkpoint went (§6).
+ *
+ * A pass clears the debt. A fail clears it too, and moves the learner back so
+ * the phase gets the two extra weeks the curriculum prescribes — the debt must
+ * not persist, or a learner who fails once is asked to re-sit forever.
+ */
+export async function settleCheckpoint(
+  accountId: AccountId,
+  passed: boolean,
+  extraWeeks: number,
+): Promise<void> {
+  const profile = (await getProfile(accountId)) ?? createProfile(accountId);
+  await putProfile({
+    ...profile,
+    pendingCheckpoint: null,
+    currentWeek: passed ? profile.currentWeek : Math.max(1, profile.currentWeek - extraWeeks),
+    // Restarting the week count matters on a fail: dropping back two weeks with
+    // four of five sessions already banked would skip straight past them again.
+    sessionsThisWeek: passed ? profile.sessionsThisWeek ?? 0 : 0,
+  });
+}
+
 export async function recordTroubleWords(
   accountId: AccountId,
   missed: readonly string[],

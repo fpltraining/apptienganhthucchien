@@ -65,6 +65,30 @@ export function checkpointAfter(week: number): CheckpointSpec | null {
   return CHECKPOINTS.find((spec) => spec.afterWeek === week) ?? null;
 }
 
+/** The weeks a test draws from — everything the phase covered. */
+export function weeksCovered(spec: CheckpointSpec): number[] {
+  const index = CHECKPOINTS.findIndex((entry) => entry.kind === spec.kind);
+  const from = index === 0 ? 1 : CHECKPOINTS[index - 1]!.afterWeek + 1;
+  return Array.from({ length: spec.afterWeek - from + 1 }, (_, offset) => from + offset);
+}
+
+/**
+ * Picks `count` items at random without replacement.
+ *
+ * Drawn rather than fixed because a checkpoint the learner could revise for
+ * would measure their memory of twenty specific phrases instead of the phase
+ * (§6). The generator is injected so tests are not at the mercy of chance.
+ */
+export function draw<T>(pool: readonly T[], count: number, random: () => number): T[] {
+  const remaining = [...pool];
+  const picked: T[] = [];
+  while (picked.length < count && remaining.length > 0) {
+    const index = Math.floor(random() * remaining.length);
+    picked.push(...remaining.splice(index, 1));
+  }
+  return picked;
+}
+
 export type CheckpointResults = {
   /** Pronunciation scores, one per shadowed phrase. */
   shadowingScores: number[];
