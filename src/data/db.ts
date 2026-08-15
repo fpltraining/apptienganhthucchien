@@ -9,6 +9,8 @@
  * that returns rows for both accounts at once.
  */
 
+import { BACKED_UP_STORES } from "./backup";
+import type { BackupStore } from "./backup";
 import type {
   AccountId,
   DayRecord,
@@ -187,6 +189,39 @@ export async function putTroubleWords(
     const store = tx.objectStore("sounds");
     store.delete(IDBKeyRange.bound([accountId], [accountId, []]));
     for (const word of words) store.put(word);
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));
+  });
+}
+
+/** Everything in a store, for a backup. */
+export async function dumpStore(store: BackupStore): Promise<unknown[]> {
+  return withStore(store, "readonly", (handle) => handle.getAll());
+}
+
+/**
+ * Replaces the contents of several stores in one transaction.
+ *
+ * All of them together, because a restore that succeeded for cards and failed
+ * for profiles would leave a learner whose review schedule belongs to a week
+ * they are not on — a state no amount of studying produces, and one they would
+ * have no way to recognise as wrong.
+ */
+export async function replaceStores(data: Record<string, unknown[]>): Promise<void> {
+  const names = Object.keys(data).filter((name): name is BackupStore =>
+    (BACKED_UP_STORES as readonly string[]).includes(name),
+  );
+  if (names.length === 0) return;
+
+  const db = await openDb();
+  await new Promise<void>((resolve, reject) => {
+    const tx = db.transaction(names, "readwrite");
+    for (const name of names) {
+      const store = tx.objectStore(name);
+      store.clear();
+      for (const row of data[name] ?? []) store.put(row);
+    }
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
     tx.onabort = () => reject(tx.error ?? new Error("transaction aborted"));

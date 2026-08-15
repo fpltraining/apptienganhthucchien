@@ -200,7 +200,8 @@ const reds = await page.evaluate(() =>
 check("nothing on the home screen is red", reds.join(" ") || "none", "none");
 
 // --- the account boundary holds ---
-await page.locator(".linkish").click();
+// By name, not by class: the home screen has more than one quiet link now.
+await page.getByRole("button", { name: "Đổi tài khoản" }).click();
 await page.waitForSelector(".picker__tiles");
 const streaks = await page.locator(".tile__streak").allTextContents();
 check("account 1 streak on tile", streaks[0], "🔥 1 ngày");

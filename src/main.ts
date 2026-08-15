@@ -22,6 +22,7 @@ import type { PickerEntry } from "./ui/account-picker";
 import { renderHome } from "./ui/home";
 import { runSession } from "./ui/session";
 import { runCheckpoint } from "./ui/checkpoint";
+import { runBackupScreen } from "./ui/backup";
 import { renderPlacementOutcome, runPlacement } from "./ui/placement";
 import { primeMicrophone } from "./platform/speech";
 
@@ -90,8 +91,15 @@ async function openAccount(id: AccountId, events: StreakEvent[] = []): Promise<v
         void showPicker();
       },
       onStartSession: () => void startLesson(id),
+      onBackup: () => void showBackup(id),
     }),
   );
+}
+
+/** Shows the backup screen, then returns to where the learner was. */
+async function showBackup(id: AccountId): Promise<void> {
+  await runBackupScreen(root!);
+  await openAccount(id);
 }
 
 /** Starts a lesson at the learner's current week and returns home after. */

@@ -833,3 +833,10 @@ button {
     min-height: 15rem;
   }
 }
+
+/* Housekeeping, kept visually subordinate to the one button that matters. */
+.home__backup {
+  align-self: center;
+  margin-top: var(--gap);
+  color: var(--ink-soft);
+}

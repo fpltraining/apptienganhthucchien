@@ -21,6 +21,8 @@ import { el } from "./dom";
 export type HomeActions = {
   onSwitchAccount: () => void;
   onStartSession: () => void;
+  /** Opens the backup screen (§16.3). */
+  onBackup: () => void;
 };
 
 /**
@@ -142,6 +144,13 @@ export function renderHome(
 
     el("button", { class: "btn", type: "button", onclick: actions.onStartSession }, [
       studiedToday ? "Học thêm một buổi" : "Bắt đầu",
+    ]),
+
+    // Below the main button and quiet: backing up is housekeeping, and putting
+    // it anywhere prominent would compete with the one thing this screen exists
+    // to get the learner to do.
+    el("button", { class: "linkish home__backup", type: "button", onclick: actions.onBackup }, [
+      "Sao lưu dữ liệu",
     ]),
   ]);
 }
