@@ -118,6 +118,21 @@ function escapeXml(text) {
     .replace(/'/g, "&apos;");
 }
 
+/**
+ * How many clips to ask for at once.
+ *
+ * The free tier throttles hard — a handful of requests a minute — and answers
+ * everything above that with 429. Paid tiers are far more generous. Rather than
+ * pick one and be wrong on the other, this starts modest and the retry logic
+ * below backs it off further whenever the service says to.
+ */
+const START_CONCURRENCY = Number(process.env.AUDIO_CONCURRENCY ?? 4);
+
+/** Raised whenever a 429 arrives, so the next attempt waits longer. */
+let backoffMs = 0;
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 async function synthesise(entry) {
   const voice = VOICES[entry.lang] ?? VOICES[DEFAULT_LANG];
   const ssml =
@@ -140,10 +155,57 @@ async function synthesise(entry) {
     },
   );
 
-  if (!response.ok) {
-    throw new Error(`${response.status} ${await response.text().catch(() => "")}`);
+  if (response.status === 429) {
+    // The service tells us how long to wait; trust it over any guess, and keep
+    // the delay for subsequent requests so the whole run slows rather than
+    // hammering the limit once per clip.
+    const retryAfter = Number(response.headers.get("retry-after") ?? 0);
+    const wait = retryAfter > 0 ? retryAfter * 1000 : Math.min(60_000, Math.max(2000, backoffMs * 2));
+    backoffMs = wait;
+    throw Object.assign(new Error(`throttled, waiting ${Math.round(wait / 1000)}s`), {
+      retryable: true,
+      wait,
+    });
   }
+
+  if (response.status >= 500) {
+    throw Object.assign(new Error(`${response.status} from the service`), {
+      retryable: true,
+      wait: 5000,
+    });
+  }
+
+  if (!response.ok) {
+    // 401 and 403 mean the key or region is wrong, and no amount of retrying
+    // fixes that. Say so plainly rather than burying it in a per-line warning.
+    const body = await response.text().catch(() => "");
+    if (response.status === 401 || response.status === 403) {
+      console.error(
+        `\nAzure refused the key (${response.status}). Check AZURE_SPEECH_KEY and that ` +
+          `AZURE_SPEECH_REGION is the resource's region — currently "${REGION}".`,
+      );
+      process.exit(1);
+    }
+    throw new Error(`${response.status} ${body}`);
+  }
+
+  // A successful call means the current pace is acceptable; ease off the brake.
+  backoffMs = Math.floor(backoffMs / 2);
   return Buffer.from(await response.arrayBuffer());
+}
+
+/** Synthesises one clip, waiting out throttling rather than giving up on it. */
+async function synthesiseWithRetry(entry, attempts = 6) {
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      if (backoffMs > 0) await sleep(backoffMs);
+      return await synthesise(entry);
+    } catch (error) {
+      if (!error.retryable || attempt === attempts) throw error;
+      await sleep(error.wait ?? 2000);
+    }
+  }
+  throw new Error("unreachable");
 }
 
 const utterances = collectUtterances();
@@ -159,27 +221,36 @@ if (!KEY) {
 
 mkdirSync(AUDIO_DIR, { recursive: true });
 
+const pending = utterances.filter((entry) => !existsSync(join(AUDIO_DIR, fileNameFor(entry))));
+const skipped = utterances.length - pending.length;
+
+console.log(`${pending.length} to generate, ${skipped} already present.`);
+
 let made = 0;
-let skipped = 0;
-for (const entry of utterances) {
-  const name = fileNameFor(entry);
-  const path = join(AUDIO_DIR, name);
-  if (existsSync(path)) {
-    skipped++;
-    continue;
-  }
-  try {
-    writeFileSync(path, await synthesise(entry));
-    made++;
-    if (made % 25 === 0) console.log(`  ${made} generated…`);
-  } catch (error) {
-    // One failed line must not lose the whole run: the manifest simply will not
-    // point at it, and the app falls back to the device voice for that line.
-    console.warn(`skipped "${entry.text.slice(0, 40)}…": ${error.message}`);
-    delete manifest[entry.key];
+let failed = 0;
+let next = 0;
+
+async function worker() {
+  while (next < pending.length) {
+    const entry = pending[next++];
+    try {
+      writeFileSync(join(AUDIO_DIR, fileNameFor(entry)), await synthesiseWithRetry(entry));
+      made++;
+      if (made % 50 === 0) console.log(`  ${made}/${pending.length}…`);
+    } catch (error) {
+      // One failed line must not lose the whole run: the manifest simply will
+      // not point at it, and the app falls back to the device voice there.
+      console.warn(`skipped "${entry.text.slice(0, 40)}…": ${error.message}`);
+      delete manifest[entry.key];
+      failed++;
+    }
   }
 }
 
+await Promise.all(
+  Array.from({ length: Math.max(1, START_CONCURRENCY) }, () => worker()),
+);
+
 writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
-console.log(`\n${made} generated, ${skipped} already present.`);
+console.log(`\n${made} generated, ${skipped} already present, ${failed} failed.`);
 console.log(`Manifest: ${Object.keys(manifest).length} lines.`);

@@ -42,6 +42,25 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
 
+      # Kept between runs so the audio is paid for once, not on every deploy.
+      # Keyed on the content files: add a week and only that week is generated.
+      - name: Restore generated audio
+        uses: actions/cache@v4
+        with:
+          path: public/audio
+          key: audio-${{ hashFiles('src/content/week*.ts', 'scripts/generate-audio.mjs') }}
+          restore-keys: audio-
+
+      # No condition: the script reports what it would generate and exits
+      # cleanly when no key is set. The app falls back to the device voice for
+      # any line with no clip, so a deploy without the secret still produces a
+      # working app — just one that sounds synthetic.
+      - name: Generate speech
+        env:
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION || 'southeastasia' }}
+        run: node scripts/generate-audio.mjs
+
       - name: Build
         env:
           # github.repository is "owner/repo"; Pages serves the repo part.
