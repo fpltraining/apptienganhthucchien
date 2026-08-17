@@ -1,0 +1,857 @@
+@import "./fonts.css";
+
+/* Sơn Mài — the interface system for this app.
+ *
+ * Three colours, taken from lacquerware rather than from a UI palette: lacquer
+ * black, son orange, warm grey. The orange is a true vermilion, not the muted
+ * terracotta every "warm" app reaches for, and the ground is a real grey rather
+ * than cream for the same reason — those are the defaults, and defaults are
+ * what make an interface look like it was assembled instead of designed.
+ *
+ * Orange is the only colour allowed to shout, and it says exactly two things:
+ * this is today's work, and this is your streak. Finished work is filled black,
+ * not green — a fourth colour is where this starts looking sentimental.
+ *
+ * There is no red anywhere. Missing a day is not an error state.
+ *
+ * Type and target sizes are set for a learner past sixty holding a phone at
+ * arm's length: nothing below 15px, body text at 18px, no tap target under
+ * 56px. Two faces, two languages — see fonts.css for why.
+ */
+
+:root {
+  /* ink */
+  --ink: #17150f;        /* lacquer black, warm-biased — not a blue-black */
+  --ink-soft: #5c574e;   /* warm grey; browned so it sits beside the orange */
+
+  /* ground */
+  --paper: #edebe6;      /* page: a grey that is grey, not cream */
+  --card: #ffffff;       /* content sits on white for maximum contrast */
+  --line: #d8d3c9;
+
+  /* son */
+  --flame: #e05221;      /* fills, streak, today's work */
+  --flame-ink: #a8360d;  /* the same orange as text: 7:1 on white */
+  --flame-wash: #fbeae1; /* the only tint, for the streak strip */
+  --flame-edge: #f0cdb9;
+
+  /* the primary button is black, not orange: orange marks what is live, and a
+     button that is always there is not news. */
+  --brand: #17150f;
+  --brand-ink: #ffffff;
+
+  /* Vietnamese: everything the app says. */
+  --font-vi: "Be Vietnam Pro", "SF Pro Text", -apple-system, "Segoe UI", Roboto,
+    sans-serif;
+  /* English: only the phrases being learned, so they are never mistaken for
+     instructions. */
+  --font-en: "Source Serif 4", "Iowan Old Style", Georgia, serif;
+
+  --step--1: 0.9375rem; /* 15px — the floor, notes only */
+  --step-0: 1.125rem;   /* 18px — body */
+  --step-1: 1.375rem;
+  --step-2: 1.625rem;
+  --step-3: 2rem;
+  --step-4: 2.75rem;
+
+  --gap: 1rem;
+  /* 8px, not the 20px that makes every card look like the same template. */
+  --radius: 0.5rem;
+  --tap: 3.5rem; /* 56px */
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-vi);
+  font-size: var(--step-0);
+  line-height: 1.5;
+  /* Standalone PWAs have no pull-to-refresh to preserve, and rubber-banding
+     during a lesson feels like the page is broken. */
+  overscroll-behavior: none;
+}
+
+#app {
+  min-height: 100dvh;
+  padding: calc(var(--safe-top) + 1.5rem) 1.25rem
+    calc(var(--safe-bottom) + 1.5rem);
+  display: flex;
+  flex-direction: column;
+}
+
+h1,
+h2 {
+  margin: 0;
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+/* --- account picker -------------------------------------------------------- */
+
+.picker {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2rem;
+  max-width: 32rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.picker__title {
+  font-size: var(--step-3);
+  text-align: center;
+}
+
+.picker__tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--gap);
+}
+
+.tile {
+  min-height: 13rem;
+  padding: 1.5rem 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--card);
+  border: 2px solid var(--line);
+  border-radius: var(--radius);
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease;
+}
+
+.tile:active {
+  transform: scale(0.97);
+  border-color: var(--brand);
+}
+
+.tile__avatar {
+  width: 4.5rem;
+  height: 4.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: var(--step-3);
+  font-weight: 700;
+}
+
+.tile__name {
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.tile__streak {
+  font-size: var(--step-0);
+  color: var(--flame);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.tile__streak[data-empty="true"] {
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* --- home ------------------------------------------------------------------ */
+
+.home {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-width: 32rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.home__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--gap);
+}
+
+.home__who {
+  font-size: var(--step-1);
+  font-weight: 700;
+}
+
+.linkish {
+  background: none;
+  border: 0;
+  padding: 0.75rem 0;
+  color: var(--ink-soft);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  min-height: var(--tap);
+}
+
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+}
+
+/* Finishing a week is the one milestone worth marking on the summary screen. */
+.panel--good {
+  border-color: var(--flame);
+  border-width: 2px;
+}
+
+.panel--good .panel__stat {
+  color: var(--flame);
+}
+
+.panel__label {
+  margin: 0 0 0.25rem;
+  color: var(--ink-soft);
+}
+
+.panel__stat {
+  font-size: var(--step-4);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.panel__note {
+  margin: 0.5rem 0 0;
+  color: var(--ink-soft);
+}
+
+.btn {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 1rem 1.25rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: var(--step-2);
+  font-weight: 700;
+  transition: transform 120ms ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.notice {
+  margin: 0;
+  padding: 0.875rem 1rem;
+  border-radius: var(--radius);
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  color: var(--flame-ink);
+}
+
+/* --- session blocks -------------------------------------------------------- */
+
+.block {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  max-width: 32rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.block__head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.block__step {
+  margin: 0;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.block__title {
+  font-size: var(--step-2);
+}
+
+.block__sub,
+.block__hint {
+  margin: 0;
+  color: var(--ink-soft);
+}
+
+/* The card is the focal point of the vocabulary and review blocks, so it gets
+   the vertical space and the largest type on screen. */
+.card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem 1.25rem;
+  text-align: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.card__prompt {
+  margin: 0;
+  font-size: var(--step-3);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+/* The English being learned, in the other voice. A production card prompts in
+   Vietnamese and a recognition card prompts in English through this same
+   element, so the face is switched by modifier rather than by selector — one
+   of them would otherwise be set in the wrong language's type. */
+.card__prompt--en,
+.card__answer--en,
+.dialogue__say,
+.hints__line,
+.btn--choice--en {
+  font-family: var(--font-en);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.card__answer {
+  margin: 0;
+  font-size: var(--step-1);
+  color: var(--ink-soft);
+  min-height: 1.5em;
+}
+
+.card__situation {
+  margin: 0;
+  color: var(--ink-soft);
+  font-size: var(--step-0);
+}
+
+.feedback {
+  margin: 0;
+  min-height: 3rem;
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.question {
+  margin: 0;
+  font-size: var(--step-2);
+  line-height: 1.3;
+}
+
+.listen__art {
+  flex: 1;
+  display: grid;
+  place-items: center;
+  font-size: 5rem;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.btn--ghost {
+  background: transparent;
+  color: var(--brand);
+  border: 2px solid var(--line);
+}
+
+/* Answer options are left-aligned: centred text is harder to scan when the
+   options are full phrases rather than single words. */
+.btn--choice {
+  background: var(--card);
+  color: var(--ink);
+  border: 2px solid var(--line);
+  font-size: var(--step-1);
+  text-align: left;
+}
+
+.btn--choice:disabled {
+  opacity: 0.55;
+}
+
+/* The chosen and correct answers stay legible after the buttons disable, so a
+   wrong answer is something the learner can actually learn from. */
+/* Right and wrong are shown without green and red. Black filled is "this is
+   the answer" — the same fill that marks finished work everywhere else — and
+   the learner's own wrong pick is outlined in orange, meaning "look here",
+   not "you failed". An older learner meeting a red panel reads it as being
+   told off, and §9.3 spends its whole length avoiding exactly that. */
+.btn--choice.is-correct,
+.btn--choice.is-wrong {
+  opacity: 1;
+}
+
+.btn--choice.is-correct {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--brand-ink);
+}
+
+.btn--choice.is-correct::before {
+  content: "✓ ";
+  font-weight: 800;
+}
+
+.btn--choice.is-wrong {
+  background: var(--card);
+  border-color: var(--flame-ink);
+  color: var(--flame-ink);
+}
+
+.dialogue {
+  padding: 1.25rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+.dialogue__who {
+  margin: 0 0 0.25rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+.dialogue__say {
+  margin: 0;
+  font-size: var(--step-2);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.hints {
+  padding: 1rem 1.25rem;
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  border-radius: var(--radius);
+}
+
+.hints[hidden] {
+  display: none;
+}
+
+.hints__line {
+  margin: 0 0 0.5rem;
+  font-size: var(--step-1);
+  font-weight: 600;
+}
+
+.hints__vi {
+  margin: 0;
+  color: var(--flame-ink);
+}
+
+.plan {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: var(--ink-soft);
+  font-size: var(--step-1);
+}
+
+.plan__item {
+  margin-bottom: 0.5rem;
+}
+
+/* --- streak strip ----------------------------------------------------------
+   The one place the app could discourage someone into quitting, so it is built
+   to do the opposite: a count, a week of pips, and never a warning. A rest day
+   is hatched grey, not marked red — §10 treats it as a normal part of the
+   month, and the interface has to agree. */
+
+.streak {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  padding: 0.875rem 1rem;
+  background: var(--flame-wash);
+  border: 1px solid var(--flame-edge);
+  border-radius: var(--radius);
+}
+
+.streak__num {
+  font-size: var(--step-3);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--flame-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.streak__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.streak__label {
+  margin: 0;
+  font-weight: 700;
+}
+
+.streak__note {
+  margin: 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.pips {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.35rem;
+}
+
+.pip {
+  width: 0.875rem;
+  height: 0.4rem;
+  border-radius: 2px;
+  background: #e4d9cf;
+}
+
+.pip--on {
+  background: var(--flame);
+}
+
+/* Hatched rather than coloured: a rest day is neither done nor missed. */
+.pip--rest {
+  background: repeating-linear-gradient(
+    45deg,
+    #e4d9cf 0 3px,
+    #f3eae3 3px 6px
+  );
+}
+
+/* --- today's four blocks ---------------------------------------------------
+   State is carried by shape as well as fill, so it survives being read quickly
+   or in bright sun: done is a filled black tick, now is a thick orange ring,
+   later is a thin grey outline. */
+
+.blocks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.blocks__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.blocks__item:last-child {
+  border-bottom: 0;
+}
+
+.blocks__dot {
+  width: 1.5rem;
+  height: 1.5rem;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  display: grid;
+  place-items: center;
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: var(--brand-ink);
+}
+
+.blocks__item[data-state="done"] .blocks__dot {
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.blocks__item[data-state="now"] .blocks__dot {
+  border-color: var(--flame);
+  border-width: 3px;
+  background: var(--flame-wash);
+}
+
+.blocks__item[data-state="now"] .blocks__name {
+  font-weight: 700;
+}
+
+.blocks__mins {
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- microphone ------------------------------------------------------------ */
+
+.mic {
+  display: grid;
+  place-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+}
+
+.mic__ring {
+  width: 6rem;
+  height: 6rem;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+  background: var(--card);
+  display: grid;
+  place-items: center;
+}
+
+.mic[data-listening="true"] .mic__ring {
+  border-color: var(--flame);
+  background: var(--flame-wash);
+  box-shadow: 0 0 0 8px rgb(224 82 33 / 12%);
+}
+
+.mic__bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 2.25rem;
+}
+
+.mic__bars i {
+  width: 4px;
+  height: 20%;
+  border-radius: 1px;
+  background: var(--ink-soft);
+  display: block;
+}
+
+.mic[data-listening="true"] .mic__bars i {
+  background: var(--flame-ink);
+  animation: mic-level 900ms ease-in-out infinite;
+}
+
+.mic__bars i:nth-child(2) { animation-delay: 120ms; }
+.mic__bars i:nth-child(3) { animation-delay: 240ms; }
+.mic__bars i:nth-child(4) { animation-delay: 60ms; }
+.mic__bars i:nth-child(5) { animation-delay: 300ms; }
+
+@keyframes mic-level {
+  0%, 100% { height: 25%; }
+  50% { height: 95%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mic[data-listening="true"] .mic__bars i {
+    animation: none;
+    height: 60%;
+  }
+}
+
+.mic__state {
+  margin: 0;
+  font-weight: 650;
+}
+
+/* --- response clock --------------------------------------------------------
+   A bar that empties, not a number counting down. Phase 3 tightens this to
+   three seconds, and three red digits ticking at someone mid-sentence is the
+   surest way to make them lose the sentence. It runs out to grey, never red. */
+
+.clock__track {
+  height: 5px;
+  border-radius: 3px;
+  background: #e4d9cf;
+  overflow: hidden;
+}
+
+.clock__fill {
+  display: block;
+  height: 100%;
+  width: 100%;
+  border-radius: 3px;
+  background: var(--flame);
+  transform-origin: left center;
+}
+
+.clock[data-spent="true"] .clock__fill {
+  background: var(--line);
+}
+
+.clock__label {
+  margin: 0.35rem 0 0;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- card progress --------------------------------------------------------- */
+
+.progress-dots {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.progress-dots i {
+  height: 0.3rem;
+  flex: 1;
+  border-radius: 2px;
+  background: #e0dad1;
+}
+
+.progress-dots i[data-state="done"] { background: var(--ink); }
+.progress-dots i[data-state="now"] { background: var(--flame); }
+
+/* --- spoken verdict --------------------------------------------------------
+   Words, not a number (§9.3). The rule stays in the CSS too: there is no
+   variant of this that turns red. */
+
+.verdict {
+  padding: 0.75rem 0.9rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink);
+  border-radius: var(--radius);
+  font-weight: 650;
+}
+
+.verdict[data-tone="close"] {
+  border-left-color: var(--flame);
+}
+
+.verdict__hint {
+  display: block;
+  margin-top: 0.15rem;
+  font-weight: 400;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* --- focus -----------------------------------------------------------------
+   Visible on every focusable thing. Offset so it clears the button's own edge. */
+
+:focus-visible {
+  outline: 3px solid var(--flame-ink);
+  outline-offset: 3px;
+}
+
+/* The week's title is the headline of the home screen, so it uses the stat slot
+   but at a size that fits a phrase rather than a two-digit number. */
+.panel__stat--title {
+  font-size: var(--step-2);
+  line-height: 1.2;
+  margin-bottom: 0.75rem;
+}
+
+/* What the recogniser heard, quoted back. The words themselves are English, so
+   they take the English face — the label around them stays Vietnamese. */
+.heard {
+  color: var(--ink-soft);
+}
+
+.heard__words,
+.answer-en {
+  font-family: var(--font-en);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* The primary action sits at the bottom of the screen on every view, so the
+   thumb never has to go looking for it. Pushed down rather than fixed: a fixed
+   bar would cover content on a short screen, and this app's screens are short
+   by design. */
+.home > .btn:last-child,
+.block > .btn:last-child,
+.block > .stack:last-child {
+  margin-top: auto;
+}
+
+/* --- larger screens --------------------------------------------------------
+   Account 2 studies on an iPad. The column stays a column — one job per screen
+   is the point, and a two-column lesson would give the eye somewhere else to
+   be — but a phone layout stranded in the middle of a 11" screen reads as an
+   app that was not meant for the device. So the measure widens a little and
+   everything scales up, because an iPad sits further away than a phone. */
+
+@media (min-width: 46rem) {
+  :root {
+    --step--1: 1.0625rem;
+    --step-0: 1.3125rem;
+    --step-1: 1.625rem;
+    --step-2: 2rem;
+    --step-3: 2.5rem;
+    --step-4: 3.5rem;
+    --tap: 4rem;
+    --gap: 1.25rem;
+  }
+
+  #app {
+    padding: calc(var(--safe-top) + 3rem) 2rem calc(var(--safe-bottom) + 3rem);
+  }
+
+  .home,
+  .block,
+  .picker {
+    max-width: 40rem;
+  }
+
+  /* Two accounts side by side already; give them room to be tappable targets
+     rather than stretched cards. */
+  .tile {
+    min-height: 15rem;
+  }
+}
+
+/* Housekeeping, kept visually subordinate to the one button that matters. */
+.home__backup {
+  align-self: center;
+  margin-top: var(--gap);
+  color: var(--ink-soft);
+}
+
+/* The closing report: a short list, deliberately not a dashboard. */
+.report {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  margin: var(--gap) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.report__line {
+  font-size: var(--step-1);
+  line-height: 1.4;
+}

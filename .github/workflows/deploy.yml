@@ -1,0 +1,64 @@
+# Builds the app and publishes it to GitHub Pages.
+#
+# The learner installs from the published URL once and then has an icon on
+# their home screen (curriculum §16). Because Pages serves a project site under
+# /<repo>/, BASE_PATH has to match or every asset 404s behind a page that still
+# loads — a failure that looks like a blank app rather than a broken build.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # So the site can be published before anything is merged, and re-published
+  # without an empty commit.
+  workflow_dispatch:
+
+# Never publish a half-built site: cancel a run that a newer push supersedes,
+# but let one that is already uploading finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Publishing a build that does not typecheck or pass its tests would put
+      # a broken lesson in front of the learner, so both gate the deploy.
+      - run: npm run typecheck
+      - run: npm run test
+
+      - name: Build
+        env:
+          # github.repository is "owner/repo"; Pages serves the repo part.
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
